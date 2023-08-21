@@ -5,7 +5,7 @@
             "name": "Debug (Linux)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main", // Path to your output binary
+            "program": "${workspaceFolder}/app", 
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

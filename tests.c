@@ -49,9 +49,7 @@ void test_mat_row_slice(){
 
 void test_mat_col_slice(){
     Matrix* m = mat_arrange(3,3,1);
-    print_mat(m);
     Matrix* slice = COL_SLICE(m,1,2);
-    print_mat(slice);
     assert(slice->col_stride==1);
     assert(slice->row_stride==2);
     assert(slice->cols==2);

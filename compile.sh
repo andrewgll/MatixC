@@ -1,5 +1,5 @@
 #!/bin/sh
 
-gcc main.c -o app -lm -g
+gcc nnc.c main.c -o app -lm
 
 ./app

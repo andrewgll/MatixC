@@ -6,14 +6,8 @@
 
 #include "nnc.h"
 
-#define AT(matrix, i, j) ((matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride])
-#define MATRIX(rows, cols) mat_init(rows, cols, 0)
-#define MATRIX_VIEW(matrix) mat_view(matrix)
-#define MATRIX_WITH(rows, cols, init_value) mat_init(rows, cols, init_value)
-#define ROW_SLICE(matrix,i,j) mat_slice(matrix,i,j,0,(matrix)->cols-1)
-#define COL_SLICE(matrix,i,j) mat_slice(matrix, 0, (matrix)->rows-1, i, j)
 
-double sigmoidf(double value){
+dtype sigmoidf(dtype value){
     return 1/(1+exp(-value));
 }
 
@@ -37,7 +31,7 @@ __matrix_container* init_container(size_t size) {
     __matrix_container* container = malloc(sizeof(__matrix_container));
     
     container->ref_count = 1;
-    container->data = malloc(sizeof(double) * size);
+    container->data = malloc(sizeof(dtype) * size);
     
     if (!container->data) {
         perror("Failed to allocate memory for the matrix data.");
@@ -48,7 +42,7 @@ __matrix_container* init_container(size_t size) {
     return container;
 }
 
-Matrix* mat_init(size_t rows, size_t cols, double init_value) {
+Matrix* mat_init(size_t rows, size_t cols, dtype init_value) {
 
     Matrix* mat = (Matrix*)malloc(sizeof(Matrix));
     if (!mat) {
@@ -107,7 +101,7 @@ Matrix* mat_transpose(Matrix* matrix){
     return mat_transposed;
 }
 
-Matrix* mat_arrange(size_t rows, size_t cols, double start_arrange){
+Matrix* mat_arrange(size_t rows, size_t cols, dtype start_arrange){
     Matrix* matrix = MATRIX(rows, cols);
     for(size_t i=0; i< matrix->rows;i++){
         for(size_t j=0; j< matrix->cols;j++, start_arrange++){
@@ -121,14 +115,14 @@ Matrix* mat_rand(size_t rows, size_t cols){
     Matrix* matrix = MATRIX(rows, cols);
     for(size_t i=0; i< matrix->rows;i++){
         for(size_t j=0; j< matrix->cols;j++){
-            double value = (double)rand()/RAND_MAX*1;
+            dtype value = (dtype)rand()/RAND_MAX*1;
             AT(matrix,i,j) = value;
         }
     }
     return matrix;
 }
 
-Matrix* mat_scale(Matrix* matrix, double scalar){
+Matrix* mat_scale(Matrix* matrix, dtype scalar){
     Matrix* result = MATRIX_VIEW(matrix);
     for(size_t i =0; i< matrix->rows;i++){
         for(size_t j = 0; j<matrix->cols; j++){
@@ -174,7 +168,7 @@ Matrix* mat_dot(const Matrix* matrix1, const Matrix* matrix2){
     Matrix* result = MATRIX(matrix1->rows, matrix2->cols);
     for(size_t i=0; i<matrix1->rows; i++){
         for(size_t j=0; j<matrix2->cols; j++){            
-            double sum = 0;
+            dtype sum = 0;
             for (size_t k = 0; k < matrix1->cols; k++) {
                 sum += AT(matrix1, i, k) * AT(matrix2, k, j);
             }
@@ -218,7 +212,7 @@ Matrix* open_dataset(const char* name){
         size_t j = 0;
         char* token = strtok(line, ",");
         while (token) {
-            double value = atof(token);
+            dtype value = atof(token);
             AT(result, i, j) = value;
             j++;
             token = strtok(NULL, ",");
@@ -256,7 +250,7 @@ void print_mat(const Matrix* matrix) {
     for (size_t i = 0; i < matrix->rows; i++) {
         printf("[");
         for (size_t j = 0; j < matrix->cols; j++) {
-            double value = AT(matrix,i,j);
+            dtype value = AT(matrix,i,j);
             printf("%f", value);
             if (j < matrix->cols - 1) {
                 printf(", ");

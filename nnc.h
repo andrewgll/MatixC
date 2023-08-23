@@ -6,6 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef USE_DOUBLE_PRECISION
+    typedef double dtype;
+#else
+    typedef float dtype;
+#endif
+
 #define AT(matrix, i, j) ((matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride])
 #define MATRIX(rows, cols) mat_init(rows, cols, 0)
 #define MATRIX_VIEW(matrix) mat_view(matrix)
@@ -13,11 +19,11 @@
 #define ROW_SLICE(matrix,i,j) mat_slice(matrix,i,j,0,(matrix)->cols-1)
 #define COL_SLICE(matrix,i,j) mat_slice(matrix, 0, (matrix)->rows-1, i, j)
 
-double sigmoidf(double value);
+dtype sigmoidf(dtype value);
 
 typedef struct{
     size_t ref_count;
-    double *data;
+    dtype *data;
 } __matrix_container;
 
 
@@ -31,17 +37,17 @@ typedef struct{
 } Matrix;
 
 void free_mat(Matrix *matrix);
-Matrix* mat_init(size_t rows, size_t cols, double init_value);
+Matrix* mat_init(size_t rows, size_t cols, dtype init_value);
 Matrix* mat_view(const Matrix* matrix);
 Matrix* mat_transpose(Matrix* matrix);
-Matrix* mat_arrange(size_t rows, size_t cols, double start_arrange);
+Matrix* mat_arrange(size_t rows, size_t cols, dtype start_arrange);
 Matrix* mat_rand(size_t rows, size_t cols);
-Matrix* mat_scale(Matrix* matrix, double scalar);
+Matrix* mat_scale(Matrix* matrix, dtype scalar);
 Matrix* mat_add(const Matrix* matrix1, const Matrix* matrix2);
 Matrix* mat_subtract(const Matrix* matrix1, const Matrix* matrix2);
 Matrix* mat_dot(const Matrix* matrix1, const Matrix* matrix2);
-Matrix* open_dataset(const char* name);
 Matrix* mat_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col);
+Matrix* open_dataset(const char* name);
 void print_mat(const Matrix* matrix);
 
 #endif // NNC

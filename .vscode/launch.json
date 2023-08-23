@@ -5,7 +5,7 @@
             "name": "Debug (Linux)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/tests", 
+            "program": "${workspaceFolder}/build/unity_test", 
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

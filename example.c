@@ -1,9 +1,9 @@
 #include "nnc.h"
 
-double gradient_descent(Matrix* X, Matrix* y, Matrix* W, double alpha, size_t iterations){
+Matrix* gradient_descent(Matrix* X, Matrix* y, Matrix* W, double alpha, size_t iterations){
     int m = X->rows;
     double scaling_factor = -2.0 / m;
-    for (int i = 0; i < iterations; i++) {
+    for (size_t i = 0; i < iterations; i++) {
         Matrix *y_pred = mat_dot(X, W);
         Matrix *R = mat_subtract(y, y_pred);
 
@@ -32,39 +32,22 @@ double gradient_descent(Matrix* X, Matrix* y, Matrix* W, double alpha, size_t it
         free_mat(new_weight);
         new_weight=NULL;
     }
-
+    return W;
 }
 
-
-int main(int argc, char **argv){
+int main(){
     srand(6);
-    // Matrix* dataset = open_dataset("datasets/dataset");
-    // Matrix* X = COL_SLICE(dataset, 0,1);
-    // Matrix* Y = COL_SLICE(dataset, 2,2);
-    // Matrix* W = mat_rand(X->cols, 1);
-    // print_mat(X);
-    // print_mat(Y);
-    // print_mat(W);
-    // gradient_descent(X,Y,W,0.01,10);
-
-    // free_mat(dataset);
-    // free_mat(X);
-    // free_mat(Y);
-    // free_mat(W);
-    Matrix* rand = mat_rand(3,3);
-    Matrix* X = COL_SLICE(rand, 0,1);
-    Matrix* Y = ROW_SLICE(rand, 0,1);
-
-    free_mat(rand);
-    free_mat(X);
-    free_mat(Y);
-    // Matrix* rand1 = mat_rand(3,3);
-    // print_mat(rand);
-    // print_mat(rand1);
-
-    // Matrix* subt = mat_subtract(rand, rand1);
-    // print_mat(subt);
-
+    Matrix* matrix = mat_arrange(3,3, 0);
+    Matrix* matrix2 = mat_arrange(3,3, 0);
+    Matrix* matrix3 = MATRIX_WITH(3,3,2);
+    print_mat(matrix3);
+    printf("%f ", AT(matrix3,0,1));
+    printf("%ld ", sizeof(matrix->container->data[0]));
+    printf("%ld ", sizeof(AT(matrix,0,0)));
+    printf("%ld ", sizeof(dtype));
+    dtype value = 1;
+    dtype value2 = 2;
+    printf("%f ", value-value2);
     return 0;
 }
 

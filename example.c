@@ -28,6 +28,8 @@ Matrix* gradient_descent(Matrix* X, Matrix* y, Matrix* W, double alpha, size_t i
 
 
 int main(){
+
+    //example of gradient descent and logical operators
     srand(6);
     // AND dataset
     Matrix* dataset = open_dataset("datasets/AND");

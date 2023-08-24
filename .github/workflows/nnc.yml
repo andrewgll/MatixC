@@ -14,12 +14,17 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install Dependencies
-      run: sudo apt-get install -y valgrind 
-    - name: Create Build Directory
-      run: mkdir -p build
-    - name: Initialize Git Submodules
+      run: sudo apt-get update
+      run: sudo apt-get upgrade
+      run: sudo apt-get install -y snap
+      run: sudo apt-get install -y clang
+      run: sudo apt-get install -y scan-build
+      run: snap install valgrind
+      run: mkdir -p buildx
       run: git submodule update --init --recursive
     - name: Build
       run: make nnc
     - name: Run Tests
       run: make tests
+    - name: Analysis
+      run: make analyze

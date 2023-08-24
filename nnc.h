@@ -46,11 +46,14 @@ typedef struct{
 } Matrix;
 
 dtype sigmoidf(dtype value);
-void free_mat(Matrix *matrix);
+
+void mat_free(Matrix *matrix);
 Matrix* mat_copy(const Matrix* src);
 __matrix_container* init_container(size_t size);
 Matrix* mat_init(size_t rows, size_t cols, dtype init_value);
 Matrix* mat_view(const Matrix* matrix);
+Matrix* mat_identity(size_t rows, size_t cols);
+
 Matrix* mat_transpose(Matrix* matrix);
 Matrix* mat_arrange(size_t rows, size_t cols, dtype start_arrange);
 Matrix* mat_rand(size_t rows, size_t cols);
@@ -59,7 +62,9 @@ Matrix* mat_add(const Matrix* matrix1, const Matrix* matrix2);
 Matrix* mat_subtract(const Matrix* matrix1, const Matrix* matrix2);
 Matrix* mat_dot(const Matrix* matrix1, const Matrix* matrix2);
 Matrix* mat_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col);
+Matrix* mat_inverse(const Matrix* src);
+
 Matrix* open_dataset(const char* name);
-void* print_mat(const Matrix* matrix);
+void* mat_print(const Matrix* matrix);
 
 #endif // NNC

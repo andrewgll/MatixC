@@ -47,6 +47,7 @@ int main(){
         }
         printf("%f %f = %d\n", AT(sample,0,0), AT(sample,0,1), value);
     }
+    
     free_mat(dataset);
     free_mat(X);
     free_mat(Y);

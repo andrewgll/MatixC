@@ -32,16 +32,16 @@ debug: LDFLAGS+=$(LDEBUGFLAGS)
 debug: debug
 
 nnc:
-	$(CC) $(CFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc.o
+	$(CC) $(CFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc
 nnc_debug:
-	$(CC) $(CDEBUGFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc.o
+	$(CC) $(CDEBUGFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc
 
 example: nnc_debug
 	$(CC) $(CDEBUGFLAGS) example.c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
 
 tests: clone_unity nnc_debug
 	$(CC) $(CDEBUGFLAGS) tests.c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDEBUGFLAGS)
-	valgrind --leak-check=full --track-origins=yes $(UNITY_TEST_EXECUTABLE)
+	valgrind --leak-check=full --track-origins=yes $(UNITYz_TEST_EXECUTABLE)
 
 clone_unity:
 	if [ ! -d $(UNITY_DIR) ]; then git clone $(UNITY_REPO) $(UNITY_DIR); fi

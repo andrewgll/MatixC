@@ -18,7 +18,7 @@ LDEBUGFLAGS=-lm
 
 OBJ_DIR=build
 OBJS=$(OBJ_DIR)/nnc.o
-APP_EXECUTABLE=$(OBJ_DIR)/nnc
+APP_EXECUTABLE=$(OBJ_DIR)/nnc.o
 UNITY_TEST_EXECUTABLE=$(OBJ_DIR)/unity_test
 
 .PHONY: all debug clean tests run unity_tests
@@ -32,9 +32,9 @@ debug: LDFLAGS+=$(LDEBUGFLAGS)
 debug: debug
 
 nnc:
-	$(CC) $(CFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc
+	$(CC) $(CFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc.o
 nnc_debug:
-	$(CC) $(CDEBUGFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc
+	$(CC) $(CDEBUGFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc.o
 
 example: nnc_debug
 	$(CC) $(CDEBUGFLAGS) example.c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)

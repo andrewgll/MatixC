@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "nnc.h"
 
@@ -12,7 +13,7 @@ dtype sigmoidf(dtype value){
 }
 
 void free_mat(Matrix *matrix) {
-    if (matrix) {
+    if (matrix && matrix->container)  {
         matrix->container->ref_count--;
         if (matrix->container->ref_count == 0) {
             if (matrix->container->data) {
@@ -22,35 +23,56 @@ void free_mat(Matrix *matrix) {
             free(matrix->container);
             matrix->container = NULL;
         }
-        free(matrix);
-        matrix = NULL;
+        free(matrix);  
     }
 }
 
 __matrix_container* init_container(size_t size) {
+    if(size <= 0){
+        return NULL;
+    }
     __matrix_container* container = malloc(sizeof(__matrix_container));
-    
+    if (!container) {
+        return NULL;
+    }
     container->ref_count = 1;
-    container->data = malloc(sizeof(dtype) * size);
-    
+    container->data = calloc(size, sizeof(dtype));
     if (!container->data) {
-        perror("Failed to allocate memory for the matrix data.");
-        free(container->data);
-        free(container); 
+        free(container);
         return NULL;
     }
     return container;
 }
 
-Matrix* mat_init(size_t rows, size_t cols, dtype init_value) {
+Matrix* mat_copy(const Matrix* src){
+    CHECK_MATRIX_VALIDITY(src);
 
-    Matrix* mat = (Matrix*)malloc(sizeof(Matrix));
-    if (!mat) {
-        perror("Failed to allocate memory for the matrix structure.");
+    Matrix* copy = MATRIX(src->rows, src->cols);
+    if(!copy){
+        perror("Failed to create matrix.");
         return NULL;
     }
-    mat->container = init_container(cols*rows);
+    memcpy(copy->container->data, src->container->data, sizeof(dtype) * src->size);
+    return copy;
     
+}
+
+Matrix* mat_init(size_t rows, size_t cols, dtype init_value) {
+
+    if(!VALID_DIMENSIONS(rows, cols)){
+        perror("Invalid matrix dimensions.");
+        return NULL;
+    }
+    Matrix* mat = (Matrix*)malloc(sizeof(Matrix));
+    if (!mat) {
+        return NULL;
+    }
+
+    mat->container = init_container(cols*rows);
+    if (!mat->container) {
+        free(mat);
+        return NULL;
+    }
     mat->size = rows*cols;
     mat->rows = rows;
     mat->cols = cols;
@@ -70,10 +92,7 @@ Matrix* mat_init(size_t rows, size_t cols, dtype init_value) {
 }
 
 Matrix* mat_view(const Matrix* matrix){
-    if(!matrix){
-        perror("ERROR: NULL matrix");
-        return NULL;
-    }
+    CHECK_MATRIX_VALIDITY(matrix);
     Matrix* view = (Matrix*)malloc(sizeof(Matrix));
     if (!view) {
         perror("Failed to allocate memory for the matrix structure.");
@@ -91,7 +110,7 @@ Matrix* mat_view(const Matrix* matrix){
 }
 
 Matrix* mat_transpose(Matrix* matrix){
-
+    CHECK_MATRIX_VALIDITY(matrix);
     Matrix* mat_transposed = MATRIX_VIEW(matrix);
     mat_transposed->rows = matrix->cols;
     mat_transposed->cols = matrix->rows;
@@ -123,7 +142,10 @@ Matrix* mat_rand(size_t rows, size_t cols){
 }
 
 Matrix* mat_scale(Matrix* matrix, dtype scalar){
-    Matrix* result = MATRIX_VIEW(matrix);
+    Matrix* result = MATRIX_COPY(matrix);
+    if(!result){
+        return NULL;
+    }
     for(size_t i =0; i< matrix->rows;i++){
         for(size_t j = 0; j<matrix->cols; j++){
             AT(result,i,j)=AT(result,i,j)*scalar;
@@ -132,14 +154,16 @@ Matrix* mat_scale(Matrix* matrix, dtype scalar){
     return result;
 }
 
-Matrix* mat_add(const Matrix* matrix1, const Matrix* matrix2){
+Matrix* mat_add(const Matrix* matrix1, const Matrix* matrix2){ 
+    CHECK_MATRIX_VALIDITY(matrix1);
+    CHECK_MATRIX_VALIDITY(matrix2);
     if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols){
-        perror("ERROR: invalid matrices sizes");
+        perror("ERROR when 'mat_add':Sizes of two matrices should be equal");
         return NULL;
     }
     Matrix* result = MATRIX(matrix1->rows, matrix1->cols);
-    for(size_t i =0;i<matrix1->size;i++){
-        for(size_t j =0; j<matrix1->size;j++){
+    for(size_t i =0;i<matrix1->rows;i++){
+        for(size_t j =0; j<matrix1->cols;j++){
             AT(result,i,j) = AT(matrix1,i,j)+AT(matrix2,i,j);
         }
     }
@@ -147,13 +171,15 @@ Matrix* mat_add(const Matrix* matrix1, const Matrix* matrix2){
 }
 
 Matrix* mat_subtract(const Matrix* matrix1, const Matrix* matrix2){
+    CHECK_MATRIX_VALIDITY(matrix1);
+    CHECK_MATRIX_VALIDITY(matrix2);
     if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols){
-        perror("ERROR: invalid matrices sizes");
+        perror("ERROR when 'mat_subtract':Sizes of two matrices should be equal");
         return NULL;
     }
     Matrix* result = MATRIX(matrix1->rows, matrix1->cols);
-    for(size_t i =0;i<matrix1->size;i++){
-        for(size_t j =0; j<matrix1->size;j++){
+    for(size_t i =0;i<matrix1->rows;i++){
+        for(size_t j =0; j<matrix1->cols;j++){
             AT(result,i,j) = AT(matrix1,i,j)-AT(matrix2,i,j);
         }
     }
@@ -161,8 +187,10 @@ Matrix* mat_subtract(const Matrix* matrix1, const Matrix* matrix2){
 }
 
 Matrix* mat_dot(const Matrix* matrix1, const Matrix* matrix2){
+    CHECK_MATRIX_VALIDITY(matrix1);
+    CHECK_MATRIX_VALIDITY(matrix2);
     if(matrix1->cols != matrix2->rows){
-        perror("Incorrect matrix shape");
+        perror("ERROR when 'mat_dot':Incorrect sizes of matrices.");
         return NULL;
     }
     Matrix* result = MATRIX(matrix1->rows, matrix2->cols);
@@ -182,6 +210,7 @@ Matrix* mat_dot(const Matrix* matrix1, const Matrix* matrix2){
 Matrix* open_dataset(const char* name){
     FILE* fp = fopen(name,"r");
     if(fp == NULL){
+        perror("ERROR: Incorrect filename");
         return NULL;
     }
     char line[256];
@@ -191,6 +220,7 @@ Matrix* open_dataset(const char* name){
     
     if(!fgets(line, sizeof(line), fp)){
         perror("ERROR: Something went wrong during file openning.");
+        return NULL;
     }
     data_set_rows++;
     
@@ -225,11 +255,12 @@ Matrix* open_dataset(const char* name){
     return result;
 }
 Matrix* mat_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col) {
+
+    CHECK_MATRIX_VALIDITY(src);
     if (start_row > end_row || start_col > end_col || 
         end_row >= src->rows || end_col >= src->cols) {
         return NULL;  // Return NULL if the requested slice is invalid
     }
-
     size_t rows = end_row - start_row+1;
     size_t cols = end_col - start_col+1;
     
@@ -241,11 +272,11 @@ Matrix* mat_slice(const Matrix* src, size_t start_row, size_t end_row, size_t st
             AT(slice, i, j) = AT(src, start_row + i, start_col + j);
         }
     }
-
     return slice;
 }
 
-void print_mat(const Matrix* matrix) {
+void* print_mat(const Matrix* matrix) {
+    CHECK_MATRIX_VALIDITY(matrix);
     printf("array([\n");
     for (size_t i = 0; i < matrix->rows; i++) {
         printf("[");
@@ -264,4 +295,5 @@ void print_mat(const Matrix* matrix) {
         printf("\n");
     }
     printf("])\n");
+    return 0;
 }

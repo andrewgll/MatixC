@@ -6,7 +6,6 @@ Matrix* gradient_descent(Matrix* X, Matrix* y, Matrix* W, double alpha, size_t i
     for (size_t i = 0; i < iterations; i++) {
         Matrix *y_pred = mat_dot(X, W);
         Matrix *R = mat_subtract(y, y_pred);
-
         Matrix *X_transposed = mat_transpose(X);
         Matrix *gradient = mat_dot(X_transposed, R);
         Matrix *gradient_scaled = mat_scale(gradient, scaling_factor);
@@ -14,40 +13,42 @@ Matrix* gradient_descent(Matrix* X, Matrix* y, Matrix* W, double alpha, size_t i
 
         Matrix *new_weight = mat_subtract(W, update);
         free_mat(W);
-        W = NULL;
-        W = MATRIX_VIEW(new_weight);
+        W = MATRIX_COPY(new_weight);
+        free_mat(X_transposed);
+        free_mat(new_weight);
         print_mat(W);
         free_mat(y_pred);
-        y_pred = NULL;
         free_mat(R);
-        R=NULL;
-        free_mat(X_transposed);
-        X_transposed=NULL;
         free_mat(gradient);
-        gradient=NULL;
         free_mat(gradient_scaled);
-        gradient_scaled=NULL;
         free_mat(update);
-        update=NULL;
-        free_mat(new_weight);
-        new_weight=NULL;
     }
     return W;
 }
 
+
 int main(){
     srand(6);
-    Matrix* matrix = mat_arrange(3,3, 0);
-    Matrix* matrix2 = mat_arrange(3,3, 0);
-    Matrix* matrix3 = MATRIX_WITH(3,3,2);
-    print_mat(matrix3);
-    printf("%f ", AT(matrix3,0,1));
-    printf("%ld ", sizeof(matrix->container->data[0]));
-    printf("%ld ", sizeof(AT(matrix,0,0)));
-    printf("%ld ", sizeof(dtype));
-    dtype value = 1;
-    dtype value2 = 2;
-    printf("%f ", value-value2);
+    // AND dataset
+    Matrix* dataset = open_dataset("datasets/AND");
+    Matrix* X = COL_SLICE(dataset,0,1);
+    Matrix* Y = COL_SLICE(dataset,2,2);
+    Matrix* W = mat_rand(2,1);
+    Matrix* result = gradient_descent(X,Y,W,0.1,20);
+    
+    for(size_t i = 0; i < X->rows; i++){
+        Matrix* sample = ROW_SLICE(X,i,i);
+        Matrix* result = mat_dot(sample, W);
+        int value = 0;
+        if(AT(result, 0, 0) > 0.5){
+            value = 1;
+        }
+        printf("%f %f = %d\n", AT(sample,0,0), AT(sample,0,1), value);
+    }
+    free_mat(dataset);
+    free_mat(X);
+    free_mat(Y);
+    free_mat(result);
     return 0;
 }
 

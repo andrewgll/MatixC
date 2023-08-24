@@ -41,13 +41,13 @@ example: nnc_debug
 
 tests: clone_unity nnc_debug
 	$(CC) $(CDEBUGFLAGS) tests.c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDEBUGFLAGS)
-	valgrind --leak-check=full $(UNITY_TEST_EXECUTABLE)
+	valgrind --leak-check=full --track-origins=yes $(UNITY_TEST_EXECUTABLE)
 
 clone_unity:
 	if [ ! -d $(UNITY_DIR) ]; then git clone $(UNITY_REPO) $(UNITY_DIR); fi
 
 run: example
-	./$(APP_EXECUTABLE)
+	$(OBJ_DIR)/example
 
 clean:
 	rm -rf $(OBJ_DIR)/*

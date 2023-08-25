@@ -19,6 +19,7 @@ jobs:
         sudo apt-get upgrade
         sudo apt-get install -y snap
         sudo apt-get install -y clang
+        sudo apt-get install -y libc6-dbg
         sudo snap install valgrind --classic
         mkdir -p build
         git submodule update --init --recursive

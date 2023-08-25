@@ -19,7 +19,6 @@ jobs:
         sudo apt-get upgrade
         sudo apt-get install -y snap
         sudo apt-get install -y clang
-        sudo apt-get install -y scan-build
         snap install valgrind
         mkdir -p buildx
         git submodule update --init --recursive

@@ -1,5 +1,5 @@
-# NNC
-Written in C, NNC is a streamlined framework designed for fundamental linear algebra and calculus operations. It's crafted with the following objectives:
+# MatixC (MC)
+Written in C, MatixC is a streamlined framework designed for fundamental linear algebra and calculus operations. It's crafted with the following objectives:
 
 * User-Friendly: Intuitive for scientists and mathematicians.
 * Efficiency: Speedy matrix operations and minimal memory consumption.
@@ -10,7 +10,7 @@ Written in C, NNC is a streamlined framework designed for fundamental linear alg
 ## How to build
 
 * library: 
-`make nnc`
+`make mc`
 * tests:
 `make tests`
 

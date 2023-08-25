@@ -12,16 +12,16 @@ Matrix* gradient_descent(Matrix* X, Matrix* y, Matrix* W, double alpha, size_t i
         Matrix *update = mat_scale(gradient_scaled, alpha);
 
         Matrix *new_weight = mat_subtract(W, update);
-        free_mat(W);
+        mat_free(W);
         W = MATRIX_COPY(new_weight);
-        free_mat(X_transposed);
-        free_mat(new_weight);
-        print_mat(W);
-        free_mat(y_pred);
-        free_mat(R);
-        free_mat(gradient);
-        free_mat(gradient_scaled);
-        free_mat(update);
+        mat_free(X_transposed);
+        mat_free(new_weight);
+        mat_print(W);
+        mat_free(y_pred);
+        mat_free(R);
+        mat_free(gradient);
+        mat_free(gradient_scaled);
+        mat_free(update);
     }
     return W;
 }
@@ -48,10 +48,10 @@ int main(){
         printf("%f %f = %d\n", AT(sample,0,0), AT(sample,0,1), value);
     }
     
-    free_mat(dataset);
-    free_mat(X);
-    free_mat(Y);
-    free_mat(result);
+    mat_free(dataset);
+    mat_free(X);
+    mat_free(Y);
+    mat_free(result);
     return 0;
 }
 

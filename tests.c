@@ -17,7 +17,7 @@ void tearDown(void) {
     // This is run after EACH test. Used for cleanup.
 }
 
-void test_mat_arrange_memory_layout() {
+void test_mat_arrange_memory_layout(void) {
     size_t rows = 3;
     size_t cols = 3;
     Matrix *m = mat_arrange(rows, cols, 0);
@@ -26,10 +26,10 @@ void test_mat_arrange_memory_layout() {
     TEST_ASSERT_NOT_NULL(m->container);
     TEST_ASSERT_NOT_NULL(m->container->data);
 
-    free_mat(m);
+    mat_free(m);
 }
 
-void test_mat_arrange_correctness() {
+void test_mat_arrange_correctness(void) {
     size_t rows = 3;
     size_t cols = 3;
     double start_val = 5.0;
@@ -42,7 +42,7 @@ void test_mat_arrange_correctness() {
         }
     }
 
-    free_mat(m);
+    mat_free(m);
 }
 
 
@@ -53,7 +53,7 @@ void test_basic_free(void)
     mat->container->data = malloc(10 * sizeof(dtype));
     mat->container->ref_count = 1;
 
-    free_mat(mat);
+    mat_free(mat);
 
     // If we've reached here, the basic free worked without crashing.
     // (We're not checking the memory content because it's undefined after free)
@@ -65,7 +65,7 @@ void test_ref_count_free(void)
     mat->container->ref_count = 2;
     __matrix_container* ct = mat->container;
 
-    free_mat(mat);
+    mat_free(mat);
 
     // The matrix's container and data shouldn't be freed since ref_count > 1
     TEST_ASSERT_NOT_NULL(ct);
@@ -84,7 +84,7 @@ void test_data_check(void)
     mat->container->data = malloc(10 * sizeof(dtype));
     mat->container->ref_count = 1;
 
-    free_mat(mat);
+    mat_free(mat);
 
     // Can't check mat->container->data since it's freed.
     // If we've reached here without crashes, we're good.
@@ -97,7 +97,7 @@ void test_container_check(void)
     mat->container->data = malloc(10 * sizeof(dtype));
     mat->container->ref_count = 1;
 
-    free_mat(mat);
+    mat_free(mat);
 
     // Can't check mat->container since it's freed.
     // If we've reached here without crashes, we're good.
@@ -124,7 +124,7 @@ void test_basic_matrix_initialization(void)
         }
     }
 
-    free_mat(mat);
+    mat_free(mat);
 }
 
 void test_matrix_initialization_with_value(void)
@@ -148,7 +148,7 @@ void test_matrix_initialization_with_value(void)
         }
     }
 
-    free_mat(mat);
+    mat_free(mat);
 }
 
 void test_matrix_indexing(void)
@@ -170,7 +170,7 @@ void test_matrix_indexing(void)
         }
     }
 
-    free_mat(mat);
+    mat_free(mat);
 }
 
 void test_init_container_successful_allocation(void) {
@@ -208,7 +208,7 @@ void test_mat_init_successful_allocation(void) {
         }
     }
     
-    free_mat(mat);  // Assuming you have this function to free the matrix.
+    mat_free(mat);  // Assuming you have this function to free the matrix.
 }
 
 void test_mat_init_zero_value(void) {
@@ -227,7 +227,7 @@ void test_mat_init_zero_value(void) {
         }
     }
     
-    free_mat(mat);
+    mat_free(mat);
 }
 
 
@@ -247,10 +247,10 @@ void test_successful_matrix_view_creation(void) {
     TEST_ASSERT_EQUAL_INT(view->rows, mat->rows);
     TEST_ASSERT_EQUAL_INT(view->size, mat->size);
     
-    free_mat(mat);
+    mat_free(mat);
     TEST_ASSERT_NOT_NULL(view->container);  // Ensure the view's container is still intact
 
-    free_mat(view);
+    mat_free(view);
 }
 
 void test_data_in_matrix_view_and_original_matrix(void) {
@@ -263,8 +263,8 @@ void test_data_in_matrix_view_and_original_matrix(void) {
     AT(view, 2, 2) = 9;
     TEST_ASSERT_EQUAL_DTYPE(9, AT(mat, 2, 2)); // Ensure the original reflects changes in the view
 
-    free_mat(mat);
-    free_mat(view);
+    mat_free(mat);
+    mat_free(view);
 }
 
 void test_memory_checks_for_matrix_views(void) {
@@ -275,15 +275,15 @@ void test_memory_checks_for_matrix_views(void) {
     // ref_count should be incremented appropriately
     TEST_ASSERT_EQUAL_INT(mat->container->ref_count, 3);
 
-    free_mat(mat); // This should not free the container or data since views are still existing
+    mat_free(mat); // This should not free the container or data since views are still existing
 
     TEST_ASSERT_NOT_NULL(view1->container);
     TEST_ASSERT_NOT_NULL(view2->container);
 
-    free_mat(view1); // This should not free the container or data since another view is still existing
+    mat_free(view1); // This should not free the container or data since another view is still existing
     TEST_ASSERT_NOT_NULL(view2->container);
 
-    free_mat(view2); // Now, this should free the container and data since it's the last reference
+    mat_free(view2); // Now, this should free the container and data since it's the last reference
 }
 
 void test_basic_transpose(void) {
@@ -293,8 +293,8 @@ void test_basic_transpose(void) {
     TEST_ASSERT_EQUAL_INT(mat->cols, transposed->rows);
     TEST_ASSERT_EQUAL_INT(mat->rows, transposed->cols);
 
-    free_mat(transposed);
-    free_mat(mat);
+    mat_free(transposed);
+    mat_free(mat);
 }
 
 void test_memory_sharing(void) {
@@ -303,8 +303,8 @@ void test_memory_sharing(void) {
 
     TEST_ASSERT_TRUE(mat->container->data == transposed->container->data);
 
-    free_mat(transposed);
-    free_mat(mat);
+    mat_free(transposed);
+    mat_free(mat);
 }
 
 void test_ref_count(void) {
@@ -313,8 +313,8 @@ void test_ref_count(void) {
 
     TEST_ASSERT_EQUAL_INT(2, mat->container->ref_count);
 
-    free_mat(transposed);
-    free_mat(mat);
+    mat_free(transposed);
+    mat_free(mat);
 }
 
 void test_values(void) {
@@ -325,8 +325,8 @@ void test_values(void) {
     TEST_ASSERT_EQUAL_DTYPE(1.0, AT(transposed, 0, 0));
     TEST_ASSERT_EQUAL_DTYPE(2.0, AT(transposed, 1, 0));
 
-    free_mat(transposed);
-    free_mat(mat);
+    mat_free(transposed);
+    mat_free(mat);
 }
 
 void test_memory_release(void) {
@@ -334,12 +334,12 @@ void test_memory_release(void) {
     Matrix *transposed = mat_transpose(mat);
     
     // After this, the original matrix should not be freed entirely.
-    free_mat(transposed);
+    mat_free(transposed);
     
     TEST_ASSERT_NOT_NULL(mat->container);
     TEST_ASSERT_NOT_NULL(mat->container->data);
 
-    free_mat(mat); // this should now free everything
+    mat_free(mat); // this should now free everything
 }
 
 void test_transpose_of_transpose(void) {
@@ -350,9 +350,9 @@ void test_transpose_of_transpose(void) {
     TEST_ASSERT_EQUAL_INT(mat->rows, transposed_twice->rows);
     TEST_ASSERT_EQUAL_INT(mat->cols, transposed_twice->cols);
 
-    free_mat(transposed_twice);
-    free_mat(transposed);
-    free_mat(mat);
+    mat_free(transposed_twice);
+    mat_free(transposed);
+    mat_free(mat);
 }
 
 void test_null_input(void) {
@@ -368,8 +368,8 @@ void test_large_matrix(void) {
     TEST_ASSERT_EQUAL_INT(1000, transposed->cols);
     TEST_ASSERT_EQUAL_INT(1000, transposed->rows);
 
-    free_mat(transposed);
-    free_mat(mat);
+    mat_free(transposed);
+    mat_free(mat);
 }
 // Test initialization of a 3x3 matrix starting from 0
 void test_mat_arrange_3x3_start_from_0(void) {
@@ -380,7 +380,7 @@ void test_mat_arrange_3x3_start_from_0(void) {
             TEST_ASSERT_EQUAL_DTYPE((i * mat->cols) + j, AT(mat, i, j));
         }
     }
-    free_mat(mat);
+    mat_free(mat);
 }
 
 // Test initialization of a 2x5 matrix starting from 10
@@ -394,7 +394,7 @@ void test_mat_arrange_2x5_start_from_10(void) {
             start_value++;
         }
     }
-    free_mat(mat);
+    mat_free(mat);
 }
 
 // Test that memory is allocated for a 1x1 matrix
@@ -402,7 +402,7 @@ void test_mat_arrange_1x1(void) {
     Matrix *mat = mat_arrange(1, 1, 5);
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_EQUAL_DTYPE(5, AT(mat, 0, 0));
-    free_mat(mat);
+    mat_free(mat);
 }
 
 // Negative test: Expect the function to handle 0 rows or 0 columns (even though it might not be a common use case)
@@ -420,7 +420,7 @@ void test_mat_arrange_large_matrix(void) {
     Matrix *mat = mat_arrange(large_size, large_size, 0);
     TEST_ASSERT_NOT_NULL(mat);
     // Optionally, you can also iterate and verify values, but it might be time-consuming for very large matrices.
-    free_mat(mat);
+    mat_free(mat);
 }
 
 
@@ -433,7 +433,7 @@ void test_mat_rand_basic_properties(void) {
     TEST_ASSERT_EQUAL_UINT(rows, matrix->rows);
     TEST_ASSERT_EQUAL_UINT(cols, matrix->cols);
 
-    free_mat(matrix);
+    mat_free(matrix);
 }
 
 void test_mat_rand_value_range(void) {
@@ -447,7 +447,7 @@ void test_mat_rand_value_range(void) {
         }
     }
 
-    free_mat(matrix);
+    mat_free(matrix);
 }
 
 void test_mat_rand_distinct_runs(void) {
@@ -467,8 +467,8 @@ void test_mat_rand_distinct_runs(void) {
     }
     TEST_ASSERT_EQUAL_INT32(0,matrices_are_equal);
 
-    free_mat(matrix1);
-    free_mat(matrix2);
+    mat_free(matrix1);
+    mat_free(matrix2);
 }
 
 
@@ -488,8 +488,8 @@ void test_mat_scale_basic_scaling(void) {
         }
     }
 
-    free_mat(matrix);
-    free_mat(scaled_matrix);
+    mat_free(matrix);
+    mat_free(scaled_matrix);
 }
 
 void test_mat_scale_null_input(void) {
@@ -508,11 +508,11 @@ void test_mat_scale_ref_count_and_memory(void) {
     TEST_ASSERT_EQUAL_INT(1, matrix->container->ref_count);
     TEST_ASSERT_NOT_EQUAL(matrix->container, scaled_matrix->container);  // Both matrices should point to the same data container.
 
-    free_mat(matrix);
+    mat_free(matrix);
     // At this point, only the scaled matrix should have a reference to the data. Ref count should be 1.
     TEST_ASSERT_EQUAL_INT(1, scaled_matrix->container->ref_count);
 
-    free_mat(scaled_matrix);
+    mat_free(scaled_matrix);
 }
 
 void test_add_matching_matrices(void) {
@@ -526,9 +526,9 @@ void test_add_matching_matrices(void) {
     TEST_ASSERT_EQUAL_DTYPE(7, AT(result, 1, 0));
     TEST_ASSERT_EQUAL_DTYPE(9, AT(result, 1, 1));
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);
 }
 
 void test_add_with_different_rows(void) {
@@ -539,9 +539,9 @@ void test_add_with_different_rows(void) {
 
     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_add_with_different_columns(void) {
@@ -552,9 +552,9 @@ void test_add_with_different_columns(void) {
 
     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_add_zeros(void) {
@@ -575,9 +575,9 @@ void test_add_zeros(void) {
         for(size_t j = 0; j < result->cols; j++)
             TEST_ASSERT_EQUAL_DTYPE(0, AT(result, i, j));
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);
 }
 
 void test_add_matrix_to_itself(void) {
@@ -590,8 +590,8 @@ void test_add_matrix_to_itself(void) {
     TEST_ASSERT_EQUAL_DTYPE(6, AT(result, 1, 0));
     TEST_ASSERT_EQUAL_DTYPE(8, AT(result, 1, 1));
 
-    free_mat(matrix1);
-    free_mat(result);
+    mat_free(matrix1);
+    mat_free(result);
 }
 
 void test_add_null_matrices(void) {
@@ -604,8 +604,8 @@ void test_add_null_matrices(void) {
     result = mat_add(matrix2, matrix1);
     TEST_ASSERT_NULL(result);
 
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_subtract_matching_matrices(void) {
@@ -619,9 +619,9 @@ void test_subtract_matching_matrices(void) {
     TEST_ASSERT_EQUAL_DTYPE(-1, AT(result, 1, 0));
     TEST_ASSERT_EQUAL_DTYPE(-1, AT(result, 1, 1));
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);
 }
 
 void test_subtract_with_different_rows(void) {
@@ -632,9 +632,9 @@ void test_subtract_with_different_rows(void) {
 
     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_subtract_with_different_columns(void) {
@@ -645,9 +645,9 @@ void test_subtract_with_different_columns(void) {
 
     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_subtract_matrix_from_itself(void) {
@@ -659,8 +659,8 @@ void test_subtract_matrix_from_itself(void) {
         for(size_t j = 0; j < result->cols; j++)
             TEST_ASSERT_EQUAL_DTYPE(0, AT(result, i, j));
 
-    free_mat(matrix1);
-    free_mat(result);
+    mat_free(matrix1);
+    mat_free(result);
 }
 
 void test_subtract_null_matrices(void) {
@@ -673,8 +673,8 @@ void test_subtract_null_matrices(void) {
     result = mat_subtract(matrix2, matrix1);
     TEST_ASSERT_NULL(result);
 
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_dot_valid_matrices(void) {
@@ -688,9 +688,9 @@ void test_dot_valid_matrices(void) {
     TEST_ASSERT_EQUAL_DTYPE(49, AT(result, 1, 0));
     TEST_ASSERT_EQUAL_DTYPE(64, AT(result, 1, 1));
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);
 }
 
 void test_dot_invalid_dimensions(void) {
@@ -701,9 +701,9 @@ void test_dot_invalid_dimensions(void) {
 
     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_dot_null_matrices(void) {
@@ -716,8 +716,8 @@ void test_dot_null_matrices(void) {
     result = mat_dot(matrix2, matrix1);
     TEST_ASSERT_NULL(result);
 
-    free_mat(matrix2);
-    free_mat(result);  // Safe to call, as it checks for NULL internally
+    mat_free(matrix2);
+    mat_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_dot_matrix_and_its_transpose(void) {
@@ -731,9 +731,9 @@ void test_dot_matrix_and_its_transpose(void) {
     TEST_ASSERT_EQUAL_DTYPE(32, AT(result, 1, 0));
     TEST_ASSERT_EQUAL_DTYPE(77, AT(result, 1, 1));
 
-    free_mat(matrix1);
-    free_mat(matrix2);
-    free_mat(result);
+    mat_free(matrix1);
+    mat_free(matrix2);
+    mat_free(result);
 }
 
 void test_slice_valid_submatrix(void) {
@@ -746,8 +746,8 @@ void test_slice_valid_submatrix(void) {
     TEST_ASSERT_EQUAL_DTYPE(10, AT(slice, 1, 0));
     TEST_ASSERT_EQUAL_DTYPE(11, AT(slice, 1, 1));
 
-    free_mat(matrix);
-    free_mat(slice);
+    mat_free(matrix);
+    mat_free(slice);
 }
 
 void test_slice_invalid_dimensions(void) {
@@ -761,7 +761,7 @@ void test_slice_invalid_dimensions(void) {
     slice = mat_slice(matrix, 0, 3, 0, 2); // end_row >= matrix->rows
     TEST_ASSERT_NULL(slice);
 
-    free_mat(matrix);
+    mat_free(matrix);
 }
 
 void test_slice_null_matrix(void) {
@@ -777,8 +777,8 @@ void test_slice_entire_matrix(void) {
     TEST_ASSERT_EQUAL_DTYPE(1, AT(slice, 0, 0));
     TEST_ASSERT_EQUAL_DTYPE(16, AT(slice, 3, 3));
 
-    free_mat(matrix);
-    free_mat(slice);
+    mat_free(matrix);
+    mat_free(slice);
 }
 
 void test_slice_single_row_col(void) {
@@ -790,9 +790,9 @@ void test_slice_single_row_col(void) {
     TEST_ASSERT_EQUAL_DTYPE(9, AT(row_slice, 0, 0));
     TEST_ASSERT_EQUAL_DTYPE(3, AT(col_slice, 0, 0));
 
-    free_mat(matrix);
-    free_mat(row_slice);
-    free_mat(col_slice);
+    mat_free(matrix);
+    mat_free(row_slice);
+    mat_free(col_slice);
 }
 void test_AT_macro(void) {
     Matrix* matrix = MATRIX(3, 3); // 3x3 matrix with zeroes
@@ -800,7 +800,7 @@ void test_AT_macro(void) {
 
     TEST_ASSERT_EQUAL_DTYPE(5, AT(matrix, 1, 1));
 
-    free_mat(matrix);
+    mat_free(matrix);
 }
 
 void test_MATRIX_macro(void) {
@@ -809,7 +809,7 @@ void test_MATRIX_macro(void) {
     TEST_ASSERT_NOT_NULL(matrix);
     TEST_ASSERT_EQUAL_DTYPE(0, AT(matrix, 0, 0));
 
-    free_mat(matrix);
+    mat_free(matrix);
 }
 
 void test_MATRIX_VIEW_macro(void) {
@@ -819,8 +819,8 @@ void test_MATRIX_VIEW_macro(void) {
     TEST_ASSERT_NOT_NULL(view);
     TEST_ASSERT_EQUAL_DTYPE(0, AT(view, 0, 0));
 
-    free_mat(original);
-    free_mat(view);
+    mat_free(original);
+    mat_free(view);
 }
 
 void test_MATRIX_COPY_macro(void) {
@@ -832,8 +832,8 @@ void test_MATRIX_COPY_macro(void) {
 
     TEST_ASSERT_NOT_EQUAL(AT(copy, 1, 1), AT(original, 1, 1));
 
-    free_mat(original);
-    free_mat(copy);
+    mat_free(original);
+    mat_free(copy);
 }
 
 void test_MATRIX_WITH_macro(void) {
@@ -842,7 +842,7 @@ void test_MATRIX_WITH_macro(void) {
     TEST_ASSERT_NOT_NULL(matrix);
     TEST_ASSERT_EQUAL_DTYPE(7, AT(matrix, 0, 0));
 
-    free_mat(matrix);
+    mat_free(matrix);
 }
 
 void test_ROW_SLICE_macro(void) {
@@ -853,8 +853,8 @@ void test_ROW_SLICE_macro(void) {
     TEST_ASSERT_EQUAL_UINT(2, row_slice->rows);
     TEST_ASSERT_EQUAL_UINT(4, row_slice->cols);
 
-    free_mat(matrix);
-    free_mat(row_slice);
+    mat_free(matrix);
+    mat_free(row_slice);
 }
 
 void test_COL_SLICE_macro(void) {
@@ -865,8 +865,55 @@ void test_COL_SLICE_macro(void) {
     TEST_ASSERT_EQUAL_UINT(4, col_slice->rows);
     TEST_ASSERT_EQUAL_UINT(2, col_slice->cols);
 
-    free_mat(matrix);
-    free_mat(col_slice);
+    mat_free(matrix);
+    mat_free(col_slice);
+}
+
+void test_mat_identity_square_matrix(void) {
+    size_t rows = 3, cols = 3;
+    Matrix* result = mat_identity(rows, cols);
+
+    // Check main diagonal elements
+    TEST_ASSERT_EQUAL_DTYPE(1, AT(result, 0, 0));
+    TEST_ASSERT_EQUAL_DTYPE(1, AT(result, 1, 1));
+    TEST_ASSERT_EQUAL_DTYPE(1, AT(result, 2, 2));
+
+    // Check off-diagonal elements
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 0, 1));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 0, 2));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 1, 0));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 1, 2));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 2, 0));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 2, 1));
+
+    mat_free(result);
+}
+
+void test_mat_identity_non_square_matrix(void) {
+    size_t rows = 3, cols = 2;
+    Matrix* result = mat_identity(rows, cols);
+
+    // Check the elements
+    TEST_ASSERT_EQUAL_DTYPE(1, AT(result, 0, 0));
+    TEST_ASSERT_EQUAL_DTYPE(1, AT(result, 1, 1));
+
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 0, 1));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 1, 0));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 2, 0));
+    TEST_ASSERT_EQUAL_DTYPE(0, AT(result, 2, 1));
+
+    mat_free(result);
+}
+
+void test_mat_identity_invalid_dimensions(void) {
+    Matrix* result = mat_identity(0, 2);
+    TEST_ASSERT_NULL(result);
+
+    result = mat_identity(3, 0);
+    TEST_ASSERT_NULL(result);
+
+    result = mat_identity(0, 0);
+    TEST_ASSERT_NULL(result);
 }
 
 int main(void) {
@@ -963,5 +1010,12 @@ int main(void) {
     RUN_TEST(test_MATRIX_WITH_macro);
     RUN_TEST(test_ROW_SLICE_macro);
     RUN_TEST(test_COL_SLICE_macro);
+
+    // inverse
+    RUN_TEST(test_mat_identity_square_matrix);
+    RUN_TEST(test_mat_identity_non_square_matrix);
+    RUN_TEST(test_mat_identity_invalid_dimensions);
+    
+
     return UNITY_END();
 }

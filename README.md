@@ -1,4 +1,4 @@
-# MatixC (MC)
+# MatixC (mx)
 Written in C, MatixC is a streamlined framework designed for fundamental linear algebra and calculus operations. It's crafted with the following objectives:
 
 * User-Friendly: Intuitive for scientists and mathematicians.
@@ -10,7 +10,7 @@ Written in C, MatixC is a streamlined framework designed for fundamental linear 
 ## How to build
 
 * library: 
-`make mc`
+`make mx`
 * tests:
 `make tests`
 

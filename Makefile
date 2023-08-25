@@ -10,7 +10,7 @@ DOUBLE_PRECISION_FLAGS=-DUNITY_INCLUDE_DOUBLE -DUSE_DOUBLE_PRECISION
 LDFLAGS=-lm
 
 OBJ_DIR=build
-OBJS=$(OBJ_DIR)/nnc.o
+OBJS=$(OBJ_DIR)/mx.o
 UNITY_TEST_EXECUTABLE=$(OBJ_DIR)/unity_test
 
 ANALYSIS_CHECKERS=-enable-checker core -enable-checker alpha -enable-checker unix -enable-checker cplusplus
@@ -27,20 +27,20 @@ ANALYSIS_OUTPUT_DIR=analysis_output
 
 .PHONY: all debug clean tests run unity_tests analyze
 
-all: nnc
+all: mx
 
-debug: nnc_debug
+debug: mx_debug
 
-nnc:
-	$(CC) $(CFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc.o
+mx:
+	$(CC) $(CFLAGS) -c mx.c -o $(OBJ_DIR)/mx.o
 
-nnc_debug:
-	$(CC) $(CDEBUGFLAGS) -c nnc.c -o $(OBJ_DIR)/nnc.o
+mx_debug:
+	$(CC) $(CDEBUGFLAGS) -c mx.c -o $(OBJ_DIR)/mx.o
 
-example: nnc_debug
-	$(CC) $(CDEBUGFLAGS) example.c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
+example: mx_debug
+	$(CC) $(CDEBUGFLAGS) example2.c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
 
-tests: clone_unity nnc_debug
+tests: clone_unity mx_debug
 	$(CC) $(CDEBUGFLAGS) tests.c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDFLAGS)
 	valgrind --leak-check=full --track-origins=yes $(UNITY_TEST_EXECUTABLE)
 

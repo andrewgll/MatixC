@@ -25,7 +25,7 @@ jobs:
         mkdir -p build
         git submodule update --init --recursive
     - name: Build
-      run: make nnc
+      run: make mx
     - name: Run Tests
       run: make tests
     - name: Analysis

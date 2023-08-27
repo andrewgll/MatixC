@@ -300,7 +300,7 @@ void test_memory_checks_for_matrix_views(void) {
 
 void test_basic_transpose(void) {
     Matrix *mat = MATRIX(5, 2);
-    Matrix *transposed = mx_transpose(mat);
+    Matrix *transposed = TRANSPOSE_VIEW(mat);
 
     TEST_ASSERT_EQUAL_INT(mat->cols, transposed->rows);
     TEST_ASSERT_EQUAL_INT(mat->rows, transposed->cols);
@@ -311,7 +311,7 @@ void test_basic_transpose(void) {
 
 void test_memory_sharing(void) {
     Matrix *mat = MATRIX(5, 2);
-    Matrix *transposed = mx_transpose(mat);
+    Matrix *transposed = TRANSPOSE_VIEW(mat);
 
     TEST_ASSERT_TRUE(mat->container->data == transposed->container->data);
 
@@ -321,7 +321,7 @@ void test_memory_sharing(void) {
 
 void test_ref_count(void) {
     Matrix *mat = MATRIX(5, 2);
-    Matrix *transposed = mx_transpose(mat);
+    Matrix *transposed = TRANSPOSE_VIEW(mat);
 
     TEST_ASSERT_EQUAL_INT(2, mat->container->ref_count);
 
@@ -332,7 +332,7 @@ void test_ref_count(void) {
 void test_values(void) {
     Matrix *mat = MATRIX_WITH(2, 3, 1.0);
     AT(mat, 0, 1) = 2.0;
-    Matrix *transposed = mx_transpose(mat);
+    Matrix *transposed = TRANSPOSE_VIEW(mat);
 
     TEST_ASSERT_EQUAL_DTYPE(1.0, AT(transposed, 0, 0));
     TEST_ASSERT_EQUAL_DTYPE(2.0, AT(transposed, 1, 0));
@@ -343,7 +343,7 @@ void test_values(void) {
 
 void test_memory_release(void) {
     Matrix *mat = MATRIX(2, 3);
-    Matrix *transposed = mx_transpose(mat);
+    Matrix *transposed = TRANSPOSE_VIEW(mat);
     
     // After this, the original matrix should not be freed entirely.
     mx_free(transposed);
@@ -356,8 +356,8 @@ void test_memory_release(void) {
 
 void test_transpose_of_transpose(void) {
     Matrix *mat = MATRIX(5, 2);
-    Matrix *transposed = mx_transpose(mat);
-    Matrix *transposed_twice = mx_transpose(transposed);
+    Matrix *transposed = TRANSPOSE_VIEW(mat);
+    Matrix *transposed_twice = TRANSPOSE_VIEW(transposed);
 
     TEST_ASSERT_EQUAL_INT(mat->rows, transposed_twice->rows);
     TEST_ASSERT_EQUAL_INT(mat->cols, transposed_twice->cols);
@@ -368,14 +368,14 @@ void test_transpose_of_transpose(void) {
 }
 
 void test_null_input(void) {
-    Matrix *transposed = mx_transpose(NULL);
+    Matrix *transposed = TRANSPOSE_VIEW(NULL);
 
     TEST_ASSERT_NULL(transposed);
 }
 
 void test_large_matrix(void) {
     Matrix *mat = MATRIX(1000, 1000);
-    Matrix *transposed = mx_transpose(mat);
+    Matrix *transposed = TRANSPOSE_VIEW(mat);
 
     TEST_ASSERT_EQUAL_INT(1000, transposed->cols);
     TEST_ASSERT_EQUAL_INT(1000, transposed->rows);
@@ -705,18 +705,18 @@ void test_dot_valid_matrices(void) {
     mx_free(result);
 }
 
-void test_dot_invalid_dimensions(void) {
-    Matrix* matrix1 = MATRIX(2, 2);
-    Matrix* matrix2 = MATRIX(3, 2);
+// void test_dot_invalid_dimensions(void) {
+//     Matrix* matrix1 = MATRIX(2, 2);
+//     Matrix* matrix2 = MATRIX(3, 2);
 
-    Matrix* result = mx_dot(matrix1, matrix2);
+//     Matrix* result = mx_dot(matrix1, matrix2);
 
-    TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
+//     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
-    mx_free(matrix1);
-    mx_free(matrix2);
-    mx_free(result);  // Safe to call, as it checks for NULL internally
-}
+//     mx_free(matrix1);
+//     mx_free(matrix2);
+//     mx_free(result);  // Safe to call, as it checks for NULL internally
+// }
 
 void test_dot_null_matrices(void) {
     Matrix* matrix1 = NULL;
@@ -734,7 +734,7 @@ void test_dot_null_matrices(void) {
 
 void test_dot_matrix_and_its_transpose(void) {
     Matrix* matrix1 = mx_arrange(2, 3, 1);   // Produces [[1,2,3], [4,5,6]]
-    Matrix* matrix2 = mx_transpose(matrix1); // Should produce [[1,4], [2,5], [3,6]]
+    Matrix* matrix2 = TRANSPOSE_VIEW(matrix1); // Should produce [[1,4], [2,5], [3,6]]
 
     Matrix* result = mx_dot(matrix1, matrix2);
 
@@ -968,14 +968,154 @@ void test_invalid_matrices(void) {
     mx_free(A);
 }
 
-// void test_mx_inverse_basic(void){
-//     Matrix* I = mx_identity(3,3);
-//     Matrix* A = mx_rand(3,3);
-//     Matrix* A_inverse = mx_inverse(A);
-//     Matrix* result = mx_dot(A, A_inverse);
+
+void test_mx_equal_different_dimensions(void) {
+    Matrix* mat1 = MATRIX(3, 3);
+    Matrix* mat2 = MATRIX(3, 2);
+    TEST_ASSERT_FALSE(mx_equal(mat1, mat2));
+    mx_free(mat1);
+    mx_free(mat2);
+}
+
+void test_mx_equal_identical_matrices(void) {
+    Matrix* mat1 = MATRIX(3, 3);
+    Matrix* mat2 = MATRIX(3, 3);
+    // For simplicity, assuming your matrices get initialized to zeros or some default values
+    TEST_ASSERT_TRUE(mx_equal(mat1, mat2));
+    mx_free(mat1);
+    mx_free(mat2);
+}
+
+void test_mx_equal_different_values(void) {
+    Matrix* mat1 = MATRIX(2, 2);
+    Matrix* mat2 = MATRIX(2, 2);
+    AT(mat1, 0, 0) = 5;
+    AT(mat2, 0, 0) = 6; 
+    TEST_ASSERT_FALSE(mx_equal(mat1, mat2));
+    mx_free(mat1);
+    mx_free(mat2);
+}
+
+void test_mx_equal_matrix_with_itself(void) {
+    Matrix* mat = MATRIX(3, 3);
+    TEST_ASSERT_TRUE(mx_equal(mat, mat));
+    mx_free(mat);
+}
+
+void test_mx_equal_invalid_matrices(void) {
+    Matrix* mat1 = NULL;
+    Matrix* mat2 = MATRIX(3, 3);
+    TEST_ASSERT_FALSE(mx_equal(mat1, mat2));
+    TEST_ASSERT_FALSE(mx_equal(mat2, mat1));
+    mx_free(mat2);
+}
+
+dtype add_five(dtype x) {
+    return x + 5;
+}
+
+dtype multiply_by_two(dtype x) {
+    return x * 2;
+}
+
+dtype identity_function(dtype x) {
+    return x;
+}
+
+void test_mx_apply_function_add_five(void) {
+    Matrix* mat = MATRIX(2, 2);
+    AT(mat, 0, 0) = 1;
+    AT(mat, 0, 1) = 2;
+    AT(mat, 1, 0) = 3;
+    AT(mat, 1, 1) = 4;
+    mx_apply_function(mat, add_five);
+
+    TEST_ASSERT_EQUAL_DTYPE(6, AT(mat, 0, 0));
+    TEST_ASSERT_EQUAL_DTYPE(7, AT(mat, 0, 1));
+    TEST_ASSERT_EQUAL_DTYPE(8, AT(mat, 1, 0));
+    TEST_ASSERT_EQUAL_DTYPE(9, AT(mat, 1, 1));
+
+    mx_free(mat);
+}
+
+void test_mx_apply_function_multiply_by_two(void) {
+    Matrix* mat = MATRIX(2, 2);
+    AT(mat, 0, 0) = 1;
+    AT(mat, 0, 1) = 2;
+    AT(mat, 1, 0) = 3;
+    AT(mat, 1, 1) = 4;
+    mx_apply_function(mat, multiply_by_two);
+
+    TEST_ASSERT_EQUAL_DTYPE(2, AT(mat, 0, 0));
+    TEST_ASSERT_EQUAL_DTYPE(4, AT(mat, 0, 1));
+    TEST_ASSERT_EQUAL_DTYPE(6, AT(mat, 1, 0));
+    TEST_ASSERT_EQUAL_DTYPE(8, AT(mat, 1, 1));
+
+    mx_free(mat);
+}
+
+void test_mx_apply_function_identity(void) {
+    Matrix* mat = MATRIX(2, 2);
+    AT(mat, 0, 0) = 1;
+    AT(mat, 0, 1) = 2;
+    AT(mat, 1, 0) = 3;
+    AT(mat, 1, 1) = 4;
+    mx_apply_function(mat, identity_function);
+
+    TEST_ASSERT_EQUAL_DTYPE(1, AT(mat, 0, 0));
+    TEST_ASSERT_EQUAL_DTYPE(2, AT(mat, 0, 1));
+    TEST_ASSERT_EQUAL_DTYPE(3, AT(mat, 1, 0));
+    TEST_ASSERT_EQUAL_DTYPE(4, AT(mat, 1, 1));
+
+    mx_free(mat);
+}
+
+void test_mx_apply_function_empty_matrix(void) {
+    Matrix* mat = MATRIX(0, 0);
+    mx_apply_function(mat, add_five); // Should not crash or have undefined behavior
+
+    mx_free(mat);
+}
 
 
-// }
+void test_MATRIX_ONES_lazy_initialization(void) {
+    Matrix* ones = MATRIX_ONES(3, 3);
+    TEST_ASSERT_NULL(ones->container);
+    mx_free(ones);
+}
+
+void test_MATRIX_ONES_data_values(void) {
+    Matrix* ones = MATRIX_ONES(3, 3);
+    for(int i = 0; i < 3; i++) {
+        for(int j = 0; j < 3; j++) {
+            TEST_ASSERT_EQUAL_DTYPE(1, AT(ones, i, j));
+        }
+    }
+    mx_free(ones);
+}
+
+void test_MATRIX_ONES_metadata(void) {
+    Matrix* ones = MATRIX_ONES(3, 4);
+    TEST_ASSERT_EQUAL_UINT(3, ones->rows);
+    TEST_ASSERT_EQUAL_UINT(4, ones->cols);
+    TEST_ASSERT_EQUAL_UINT(1, ones->col_stride);
+    TEST_ASSERT_EQUAL_UINT(4, ones->row_stride);
+    TEST_ASSERT_EQUAL_UINT(1, ones->default_value);
+    TEST_ASSERT_TRUE(CHECK_FLAG(ones->flags, 0)); // Assert lazy flag is set
+    mx_free(ones);
+}
+
+void test_mx_view_ref_count_increase(void) {
+    Matrix* original = MATRIX(3, 3);
+    uint16_t initial_ref_count = original->container->ref_count;
+    
+    Matrix* view = mx_view(original, 3, 3, 1);
+    TEST_ASSERT_EQUAL_UINT(initial_ref_count + 1, original->container->ref_count);
+
+    mx_free(original);
+    mx_free(view);
+}
+
 
 int main(void) {
     UNITY_BEGIN();
@@ -1052,7 +1192,7 @@ int main(void) {
 
     // dot product
     RUN_TEST(test_dot_valid_matrices);
-    RUN_TEST(test_dot_invalid_dimensions);
+    // RUN_TEST(test_dot_invalid_dimensions);
     RUN_TEST(test_dot_null_matrices);
     RUN_TEST(test_dot_matrix_and_its_transpose);
 
@@ -1077,6 +1217,23 @@ int main(void) {
     RUN_TEST(test_mx_identity_non_square_matrix);
     RUN_TEST(test_mx_identity_invalid_dimensions);
     
+    // equal
+    RUN_TEST(test_mx_equal_different_dimensions);
+    RUN_TEST(test_mx_equal_identical_matrices);
+    RUN_TEST(test_mx_equal_different_values);
+    RUN_TEST(test_mx_equal_matrix_with_itself);
+    RUN_TEST(test_mx_equal_invalid_matrices);
 
+    // apply function
+    RUN_TEST(test_mx_apply_function_add_five);
+    RUN_TEST(test_mx_apply_function_multiply_by_two);
+    RUN_TEST(test_mx_apply_function_identity);
+    RUN_TEST(test_mx_apply_function_empty_matrix);
+
+    // "lazy" matrix
+    RUN_TEST(test_MATRIX_ONES_lazy_initialization);
+    RUN_TEST(test_MATRIX_ONES_data_values);
+    RUN_TEST(test_MATRIX_ONES_metadata);
+    RUN_TEST(test_mx_view_ref_count_increase);
     return UNITY_END();
 }

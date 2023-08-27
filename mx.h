@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -25,7 +24,7 @@
         } \
     } while(0)
 #define AT(matrix, i, j) \
-    *(CHECK_FLAG((matrix)->flags, 1) ? \
+    *(CHECK_FLAG((matrix)->flags, 0) ? \
       &(dtype){(matrix)->default_value} : \
       &(matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride])
 #define MATRIX(rows, cols) mx_init(rows, cols, 0)
@@ -34,6 +33,11 @@
 #define MATRIX_COPY(matrix) mx_copy(matrix)
 #define MATRIX_RAND(rows, cols) mx_rand(rows,cols)
 #define MATRIX_WITH(rows, cols, init_value) mx_init(rows, cols, init_value)
+
+#define TRANSPOSE(matrix) mx_transpose(matrix, 1U<<0)
+#define TRANSPOSE_VIEW(matrix) mx_transpose(matrix, 1U<<1)
+#define TRANSPOSE_COPY(matrix) mx_transpose(matrix, 1U<<2)
+
 #define ROW_SLICE(matrix,i,j) mx_slice(matrix,i,j,0,(matrix)->cols-1)
 #define COL_SLICE(matrix,i,j) mx_slice(matrix, 0, (matrix)->rows-1, i, j)
 
@@ -60,19 +64,20 @@ dtype sigmoidf(dtype value);
 
 void mx_free(Matrix *matrix);
 Matrix* mx_copy(const Matrix* src);
+void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype));
 __matrix_container* init_container(size_t size);
 Matrix* mx_init(size_t rows, size_t cols, dtype init_value);
 Matrix* mx_view(const Matrix* matrix, size_t cols, size_t rows, size_t default_value);
 Matrix* mx_identity(size_t rows, size_t cols);
-bool mx_equal(Matrix* matrix1, Matrix* matrix2);
+uint8_t mx_equal(Matrix* matrix1, Matrix* matrix2);
 
-Matrix* mx_transpose(Matrix* matrix);
+Matrix* mx_transpose(Matrix* matrix, uint8_t flags);
 Matrix* mx_arrange(size_t rows, size_t cols, dtype start_arrange);
 Matrix* mx_rand(size_t rows, size_t cols);
 Matrix* mx_scale(Matrix* matrix, dtype scalar);
 Matrix* mx_add(const Matrix* matrix1, const Matrix* matrix2);
 Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
-Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2);
+Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2);
 Matrix* mx_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col);
 Matrix* mx_inverse(const Matrix* matrix);
 

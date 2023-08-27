@@ -2,16 +2,13 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdint.h>
-#include <string.h>
-#include <assert.h>
 
 #include "mx.h"
 
 
 dtype sigmoidf(dtype value){
-    return 1/(1+exp(-value));
+    return 1.0/(1+expf(-value));
 }
 
 void mx_free(Matrix *matrix) {
@@ -29,6 +26,17 @@ void mx_free(Matrix *matrix) {
         }
         free(matrix);  
     }
+}
+
+void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype)) {
+    CHECK_MATRIX_VALIDITY(matrix);
+
+    for(int i = 0; i < matrix->rows; i++) {
+        for(int j = 0; j < matrix->cols; j++) {
+            AT(matrix,i,j)= func(AT(matrix,i,j));
+        }
+    }
+    return NULL;
 }
 
 __matrix_container* init_container(size_t size) {
@@ -123,7 +131,7 @@ Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, size_t default_v
         view->container = NULL;
         view->default_value = default_value;
         view->flags = 0;
-        SET_FLAG(view->flags, 1); // lazy matrix
+        SET_FLAG(view->flags, 0); // lazy matrix
     }
     return view;
     
@@ -142,25 +150,41 @@ Matrix* mx_identity(size_t rows, size_t cols){
     return m;
 }
 
-bool mx_equal(Matrix* matrix1, Matrix* matrix2){
-    CHECK_MATRIX_VALIDITY(matrix1);
-    CHECK_MATRIX_VALIDITY(matrix2);
+uint8_t mx_equal(Matrix* matrix1, Matrix* matrix2){
+    if(!VALID_MATRIX(matrix1) || !VALID_MATRIX(matrix2)) {
+        perror("Invalid matrix dimensions.");
+        return 0;
+    }
     if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols){
-        return false;
+        return 0;
     }
     for(size_t i = 0; i < matrix1->rows; i++){
         for(size_t j =0; j<matrix1->cols; j++){
             if(AT(matrix1,i,j) != AT(matrix2,i,j)){
-                return false;
+                return 0;
             }
         }
     }
-    return true;
+    return 1;
 }
-
-Matrix* mx_transpose(Matrix* matrix){
+/*
+flags:
+1st:
+0 - default transpose
+1 - transpose inplace
+*/
+Matrix* mx_transpose(Matrix* matrix, uint8_t flags){
+    Matrix* mx_transposed;
     CHECK_MATRIX_VALIDITY(matrix);
-    Matrix* mx_transposed = MATRIX_VIEW(matrix);
+    if(CHECK_FLAG(flags,0) == 1){
+        mx_transposed = matrix; 
+    }
+    else if(CHECK_FLAG(flags,2) == 1){
+        mx_transposed = MATRIX_COPY(matrix);
+    }
+    else {
+        mx_transposed = MATRIX_VIEW(matrix);
+    }
     mx_transposed->rows = matrix->cols;
     mx_transposed->cols = matrix->rows;
     mx_transposed->row_stride = matrix->col_stride;          
@@ -240,27 +264,40 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2){
     }
     return result;
 }
-
-Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2){
+Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2){
     CHECK_MATRIX_VALIDITY(matrix1);
     CHECK_MATRIX_VALIDITY(matrix2);
-    if(matrix1->cols != matrix2->rows){
-        printf("ERROR when 'mx_dot':Incorrect sizes of matrices.");
-        return NULL;
+    
+    const Matrix* actual_matrix2 = matrix2;
+
+    if (matrix1->cols != matrix2->rows) {
+        if (matrix1->cols == matrix2->cols) {
+            actual_matrix2 = TRANSPOSE_COPY(matrix2); 
+        } else {
+            printf("ERROR when 'mx_dot': Matrices are not compatible for dot product.");
+            return NULL;
+        }
     }
-    Matrix* result = MATRIX(matrix1->rows, matrix2->cols);
-    for(size_t i=0; i<matrix1->rows; i++){
-        for(size_t j=0; j<matrix2->cols; j++){            
+
+    Matrix* result = MATRIX(matrix1->rows, actual_matrix2->cols);
+    for(size_t i = 0; i < matrix1->rows; i++){
+        for(size_t j = 0; j < actual_matrix2->cols; j++){            
             dtype sum = 0;
-            for (size_t k = 0; k < matrix1->cols; k++) {
-                sum += AT(matrix1, i, k) * AT(matrix2, k, j);
+            for(size_t k = 0; k < matrix1->cols; k++){
+                sum += AT(matrix1, i, k) * AT(actual_matrix2, k, j);
             }
             AT(result, i, j) = sum;
         }
     }
-    
+
+    if (actual_matrix2 != matrix2) {
+        // If you have created a new transposed view and it's allocated on the heap, you may need to free it here.
+        mx_free((Matrix*) actual_matrix2);
+    }
+
     return result;
 }
+
 
 Matrix* mx_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col) {
 

@@ -31,8 +31,8 @@ void mx_free(Matrix *matrix) {
 void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype)) {
     CHECK_MATRIX_VALIDITY(matrix);
 
-    for(int i = 0; i < matrix->rows; i++) {
-        for(int j = 0; j < matrix->cols; j++) {
+    for(size_t i = 0; i < matrix->rows; i++) {
+        for(size_t j = 0; j < matrix->cols; j++) {
             AT(matrix,i,j)= func(AT(matrix,i,j));
         }
     }
@@ -40,7 +40,7 @@ void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype)) {
 }
 
 __matrix_container* init_container(size_t size) {
-    if(size <= 0){
+    if(size == 0){
         return NULL;
     }
     __matrix_container* container = malloc(sizeof(__matrix_container));
@@ -75,6 +75,7 @@ Matrix* mx_init(size_t rows, size_t cols, dtype init_value) {
         printf("Invalid matrix dimensions.");
         return NULL;
     }
+    
     Matrix* mat = (Matrix*)malloc(sizeof(Matrix));
     if (!mat) {
         return NULL;
@@ -85,9 +86,9 @@ Matrix* mx_init(size_t rows, size_t cols, dtype init_value) {
         free(mat);
         return NULL;
     }
+
     mat->rows = rows;
     mat->cols = cols;
-    mat->container->ref_count = 1;  
     mat->row_stride = cols; 
     mat->col_stride = 1;
 
@@ -95,10 +96,11 @@ Matrix* mx_init(size_t rows, size_t cols, dtype init_value) {
     mat->default_value = init_value;
     mat->flags = 0;
 
+    // Initialize only if the value is non-zero as calloc is used in init_container
     if(init_value != 0){
         for(size_t i = 0; i < mat->rows; i++){
             for(size_t j = 0; j < mat->cols; j++){
-                AT(mat, i,j) = init_value;
+                AT(mat, i, j) = init_value;
             }
         }        
     }
@@ -106,8 +108,7 @@ Matrix* mx_init(size_t rows, size_t cols, dtype init_value) {
     return mat;
 }
 
-Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, size_t default_value){
-
+Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, dtype default_value){
     Matrix* view = (Matrix*)malloc(sizeof(Matrix));
     if (!view) {
         printf("Failed to allocate memory for the matrix structure.");
@@ -117,8 +118,8 @@ Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, size_t default_v
         matrix->container->ref_count++;
         view->col_stride = matrix->col_stride;
         view->row_stride = matrix->row_stride;
-        view->cols = matrix->cols;
-        view->rows = matrix->rows;
+        view->cols = rows;    // corrected to use passed rows and cols
+        view->rows = cols;    // corrected to use passed rows and cols
         view->container = matrix->container;
         view->default_value = default_value;
         view->flags = 0;
@@ -133,8 +134,7 @@ Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, size_t default_v
         view->flags = 0;
         SET_FLAG(view->flags, 0); // lazy matrix
     }
-    return view;
-    
+    return view;   
 }
 
 Matrix* mx_identity(size_t rows, size_t cols){
@@ -149,6 +149,7 @@ Matrix* mx_identity(size_t rows, size_t cols){
     }
     return m;
 }
+
 
 uint8_t mx_equal(Matrix* matrix1, Matrix* matrix2){
     if(!VALID_MATRIX(matrix1) || !VALID_MATRIX(matrix2)) {
@@ -167,24 +168,30 @@ uint8_t mx_equal(Matrix* matrix1, Matrix* matrix2){
     }
     return 1;
 }
-/*
-flags:
-1st:
-0 - default transpose
-1 - transpose inplace
-*/
 Matrix* mx_transpose(Matrix* matrix, uint8_t flags){
     Matrix* mx_transposed;
     CHECK_MATRIX_VALIDITY(matrix);
+
     if(CHECK_FLAG(flags,0) == 1){
-        mx_transposed = matrix; 
+        if(matrix->rows != matrix->cols){
+            perror("In-place transpose only supported for square matrices.");
+            return NULL;
+        }
+        mx_transposed = matrix;
     }
     else if(CHECK_FLAG(flags,2) == 1){
         mx_transposed = MATRIX_COPY(matrix);
+        if(!mx_transposed){
+            return NULL;
+        }
     }
     else {
         mx_transposed = MATRIX_VIEW(matrix);
+        if(!mx_transposed){
+            return NULL;
+        }
     }
+
     mx_transposed->rows = matrix->cols;
     mx_transposed->cols = matrix->rows;
     mx_transposed->row_stride = matrix->col_stride;          
@@ -193,13 +200,19 @@ Matrix* mx_transpose(Matrix* matrix, uint8_t flags){
     return mx_transposed;
 }
 
-Matrix* mx_arrange(size_t rows, size_t cols, dtype start_arrange){
+Matrix* mx_arrange(size_t rows, size_t cols, dtype start_arrange) {
     Matrix* matrix = MATRIX(rows, cols);
-    for(size_t i=0; i< matrix->rows;i++){
-        for(size_t j=0; j< matrix->cols;j++, start_arrange++){
-            AT(matrix,i,j) = start_arrange;
+    if (!matrix) {
+        printf("Failed to allocate memory for the matrix.\n");
+        return NULL;
+    }
+
+    for(size_t i=0; i< matrix->rows; i++){
+        for(size_t j=0; j< matrix->cols; j++, start_arrange++){
+            AT(matrix, i, j) = start_arrange;
         }
     }
+
     return matrix;
 }
 
@@ -209,61 +222,87 @@ Matrix* mx_inverse(const Matrix* matrix){
     return m;
 }
 
-Matrix* mx_rand(size_t rows, size_t cols){
-    Matrix* matrix = MATRIX(rows, cols);
-    for(size_t i=0; i< matrix->rows;i++){
-        for(size_t j=0; j< matrix->cols;j++){
-            dtype value = (dtype)((double)rand()/RAND_MAX*1.0);
-            AT(matrix,i,j) = value;
-        }
-    }
-    return matrix;
-}
-
-Matrix* mx_scale(Matrix* matrix, dtype scalar){
+Matrix* mx_scale(Matrix* matrix, dtype scalar) {
     Matrix* result = MATRIX_COPY(matrix);
-    if(!result){
+    if (!result) {
+        printf("Failed to allocate memory for the scaled matrix.\n");
         return NULL;
     }
-    for(size_t i =0; i< matrix->rows;i++){
-        for(size_t j = 0; j<matrix->cols; j++){
-            AT(result,i,j)=AT(result,i,j)*scalar;
+
+    for(size_t i = 0; i < matrix->rows; i++) {
+        for(size_t j = 0; j < matrix->cols; j++) {
+            AT(result, i, j) = AT(result, i, j) * scalar;
         }
     }
+
     return result;
+}
+
+Matrix* mx_rand(size_t rows, size_t cols) {
+    Matrix* matrix = MATRIX(rows, cols);
+    if (!matrix) {
+        printf("Failed to allocate memory for the matrix.\n");
+        return NULL;
+    }
+
+    for(size_t i = 0; i < matrix->rows; i++) {
+        for(size_t j = 0; j < matrix->cols; j++) {
+            dtype value = (dtype)((double)rand() / RAND_MAX);
+            AT(matrix, i, j) = value;
+        }
+    }
+
+    return matrix;
 }
 
 Matrix* mx_add(const Matrix* matrix1, const Matrix* matrix2){ 
     CHECK_MATRIX_VALIDITY(matrix1);
     CHECK_MATRIX_VALIDITY(matrix2);
-    if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols){
-        printf("ERROR when 'mx_add':Sizes of two matrices should be equal");
+
+    if (matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols) {
+        printf("ERROR when 'mx_add': Sizes of two matrices should be equal.\n");
         return NULL;
     }
+
     Matrix* result = MATRIX(matrix1->rows, matrix1->cols);
-    for(size_t i =0;i<matrix1->rows;i++){
-        for(size_t j =0; j<matrix1->cols;j++){
-            AT(result,i,j) = AT(matrix1,i,j)+AT(matrix2,i,j);
+    if (!result) {
+        printf("Failed to allocate memory for the resultant matrix.\n");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < matrix1->rows; i++) {
+        for (size_t j = 0; j < matrix1->cols; j++) {
+            AT(result, i, j) = AT(matrix1, i, j) + AT(matrix2, i, j);
         }
     }
+
     return result;
 }
 
 Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2){
     CHECK_MATRIX_VALIDITY(matrix1);
     CHECK_MATRIX_VALIDITY(matrix2);
-    if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols){
-        printf("ERROR when 'mx_subtract':Sizes of two matrices should be equal");
+
+    if (matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols) {
+        printf("ERROR when 'mx_subtract': Sizes of two matrices should be equal.\n");
         return NULL;
     }
+
     Matrix* result = MATRIX(matrix1->rows, matrix1->cols);
-    for(size_t i =0;i<matrix1->rows;i++){
-        for(size_t j =0; j<matrix1->cols;j++){
-            AT(result,i,j) = AT(matrix1,i,j)-AT(matrix2,i,j);
+    if (!result) {
+        printf("Failed to allocate memory for the resultant matrix.\n");
+        return NULL;
+    }
+
+    for (size_t i = 0; i < matrix1->rows; i++) {
+        for (size_t j = 0; j < matrix1->cols; j++) {
+            AT(result, i, j) = AT(matrix1, i, j) - AT(matrix2, i, j);
         }
     }
+
     return result;
 }
+
 Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2){
     CHECK_MATRIX_VALIDITY(matrix1);
     CHECK_MATRIX_VALIDITY(matrix2);
@@ -272,7 +311,11 @@ Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2){
 
     if (matrix1->cols != matrix2->rows) {
         if (matrix1->cols == matrix2->cols) {
-            actual_matrix2 = TRANSPOSE_COPY(matrix2); 
+            actual_matrix2 = TRANSPOSE_VIEW(matrix2); 
+            if (!actual_matrix2) {
+                printf("ERROR when 'mx_dot': Unable to create transposed view of matrix2.");
+                return NULL;
+            }
         } else {
             printf("ERROR when 'mx_dot': Matrices are not compatible for dot product.");
             return NULL;
@@ -280,6 +323,14 @@ Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2){
     }
 
     Matrix* result = MATRIX(matrix1->rows, actual_matrix2->cols);
+    if (!result) {
+        if (actual_matrix2 != matrix2) {
+            mx_free((Matrix*) actual_matrix2);
+        }
+        printf("ERROR when 'mx_dot': Unable to allocate memory for result matrix.");
+        return NULL;
+    }
+
     for(size_t i = 0; i < matrix1->rows; i++){
         for(size_t j = 0; j < actual_matrix2->cols; j++){            
             dtype sum = 0;
@@ -291,32 +342,39 @@ Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2){
     }
 
     if (actual_matrix2 != matrix2) {
-        // If you have created a new transposed view and it's allocated on the heap, you may need to free it here.
         mx_free((Matrix*) actual_matrix2);
     }
 
     return result;
 }
 
-
 Matrix* mx_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col) {
 
     CHECK_MATRIX_VALIDITY(src);
+    
+    // Check for valid indices
     if (start_row > end_row || start_col > end_col || 
         end_row >= src->rows || end_col >= src->cols) {
+        printf("ERROR when 'mx_slice': Invalid slice indices.\n");
         return NULL;  // Return NULL if the requested slice is invalid
     }
-    size_t rows = end_row - start_row+1;
-    size_t cols = end_col - start_col+1;
-    
-    Matrix* slice = MATRIX(rows,cols); // Assuming MATRIX(rows,cols) allocates and initializes a new matrix
-    
+
+    size_t rows = end_row - start_row + 1;
+    size_t cols = end_col - start_col + 1;
+
+    Matrix* slice = MATRIX(rows, cols); // Assuming MATRIX(rows, cols) allocates and initializes a new matrix
+    if (!slice) {
+        printf("ERROR when 'mx_slice': Unable to allocate memory for slice matrix.\n");
+        return NULL;
+    }
+
     // Directly copy rows from the source matrix to the slice matrix
     for (size_t i = 0; i < rows; i++) {
         for (size_t j = 0; j < cols; j++) {
             AT(slice, i, j) = AT(src, start_row + i, start_col + j);
         }
     }
+
     return slice;
 }
 

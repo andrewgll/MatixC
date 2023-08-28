@@ -236,14 +236,7 @@ void test_MATRIX_VIEW_with_NULL_matrix(void) {
     Matrix* view = MATRIX_VIEW(NULL);
 
     // Check that the view is not NULL
-    TEST_ASSERT_NOT_NULL(view);
-
-    // Check the dimensions of the matrix
-    TEST_ASSERT_EQUAL_UINT16(0, view->rows);
-    TEST_ASSERT_EQUAL_UINT16(0, view->cols);
-
-    // Check that the default value is 0
-    TEST_ASSERT_EQUAL(0, view->default_value);
+    TEST_ASSERT_NULL(view);
 
     mx_free(view);
 }

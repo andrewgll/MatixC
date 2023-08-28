@@ -19,14 +19,7 @@
 #define VALID_MATRIX(matrix) \
     ((matrix) && (matrix)->container && (matrix)->container->data && VALID_DIMENSIONS((matrix)->rows, (matrix)->cols))
 
-#define CHECK_MATRIX_VALIDITY(matrix) \
-    do { \
-        if (!VALID_MATRIX(matrix)) { \
-            errno = EINVAL; \
-            perror("Invalid matrix or matrix dimensions."); \
-            return NULL; \
-        } \
-    } while(0)
+#define CHECK_MATRIX_VALIDITY(matrix) matrix_is_valid(matrix)
 
 #define AT(matrix, i, j) \
     *(CHECK_FLAG((matrix)->flags, 0) ? \
@@ -186,6 +179,15 @@ static inline Matrix* safe_mx_view(const Matrix* matrix) {
     return mx_view(matrix, matrix->rows, matrix->cols, 0);
 }
 
+static inline int8_t matrix_is_valid(const Matrix* matrix) {
+    if (!VALID_MATRIX(matrix)) { 
+        errno = EINVAL; 
+        perror("Invalid matrix or matrix dimensions."); 
+        return -1; 
+    } 
+    return 1;
+}
+
 /**
  * @brief Initializes and returns an identity matrix of the given dimensions.
  * 
@@ -288,6 +290,28 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  *         the function returns NULL.
  */
 Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2);
+
+/**
+ * @brief Computes the dot product of a vector with itself.
+ * 
+ * This function calculates the dot product (or scalar product) of a vector with 
+ * itself, effectively returning the squared magnitude of the vector. The input
+ * should be a 1D matrix, representing either a row or column vector.
+ *
+ * @param vector   Pointer to a Matrix structure representing a 1D vector. 
+ *                 The matrix should have either one row or one column.
+ * 
+ * @return The scalar result of the dot product. 
+ *         Returns -1 (or any other predefined error value) if:
+ *         - The matrix is invalid.
+ *         - The provided matrix is not a 1D vector (i.e., neither a row 
+ *           nor a column vector).
+ * 
+ * @note The function assumes that the matrix is well-formed and 
+ *       checks for matrix validity. For invalid matrices, it sets
+ *       the global 'errno' to EINVAL.
+ */
+dtype mx_self_dot_product(Matrix* vector);
 
 /**
  * @brief Extracts a submatrix (or slice) from a given source matrix based on specified start and end indices.

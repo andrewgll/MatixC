@@ -1180,6 +1180,45 @@ void test_init_matrix_with_dynamic_array(void) {
     }
 }
 
+void test_self_dot_product_with_valid_row_vector(void) {
+    dtype data[3] = {1.0, 2.0, 3.0};
+    Matrix *row_vector = MATRIX_FROM(data, 1, 3);
+    
+    dtype result = mx_self_dot_product(row_vector);
+    
+    TEST_ASSERT_FLOAT_WITHIN(0.0001, 14.0, result);  // Expected value is 1^2 + 2^2 + 3^2 = 14
+    
+    mx_free(row_vector);
+}
+
+void test_self_dot_product_with_valid_column_vector(void) {
+    dtype data[3] = {1.0, 2.0, 3.0};
+    Matrix *col_vector = MATRIX_FROM(data, 3, 1);
+    
+    dtype result = mx_self_dot_product(col_vector);
+    
+    TEST_ASSERT_FLOAT_WITHIN(0.0001, 14.0, result);
+    
+    mx_free(col_vector);
+}
+
+void test_self_dot_product_with_invalid_2D_matrix(void) {
+    dtype data[4] = {1.0, 2.0, 3.0, 4.0};
+    Matrix *matrix = MATRIX_FROM(data, 2, 2);
+    
+    dtype result = mx_self_dot_product(matrix);
+    
+    TEST_ASSERT_EQUAL_FLOAT(-1.0, result);  // Assuming -1.0 is returned for invalid matrices
+    
+    mx_free(matrix);
+}
+
+void test_self_dot_product_with_null_vector(void) {
+    dtype result = mx_self_dot_product(NULL);
+    
+    TEST_ASSERT_EQUAL_FLOAT(-1.0, result);
+}
+
 int main(void) {
     UNITY_BEGIN();
 
@@ -1307,5 +1346,11 @@ int main(void) {
     RUN_TEST(test_init_matrix_with_static_array);
     RUN_TEST(test_init_container_with_zero_size);
     RUN_TEST(test_init_matrix_with_dynamic_array);
+
+    // self-dot
+    RUN_TEST(test_self_dot_product_with_valid_row_vector);
+    RUN_TEST(test_self_dot_product_with_valid_column_vector);
+    RUN_TEST(test_self_dot_product_with_invalid_2D_matrix);
+    RUN_TEST(test_self_dot_product_with_null_vector);
     return UNITY_END();
 }

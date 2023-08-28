@@ -6,32 +6,38 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
 
 #ifdef USE_DOUBLE_PRECISION
     typedef double dtype;
 #else
     typedef float dtype;
 #endif
+#define ARRAY_ROWS(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define ARRAY_COLS(arr) (sizeof(arr[0]) / sizeof(dtype))
 #define VALID_DIMENSIONS(rows, cols) ((rows) > 0 && (cols) > 0)
 #define VALID_MATRIX(matrix) \
-    (matrix && VALID_DIMENSIONS(matrix->rows, matrix->cols))
+    ((matrix) && (matrix)->container && (matrix)->container->data && VALID_DIMENSIONS((matrix)->rows, (matrix)->cols))
 
 #define CHECK_MATRIX_VALIDITY(matrix) \
     do { \
         if (!VALID_MATRIX(matrix)) { \
-            perror("Invalid matrix dimensions."); \
+            errno = EINVAL; \
+            perror("Invalid matrix or matrix dimensions."); \
             return NULL; \
         } \
     } while(0)
+
 #define AT(matrix, i, j) \
     *(CHECK_FLAG((matrix)->flags, 0) ? \
       &(dtype){(matrix)->default_value} : \
       &(matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride])
-#define MATRIX(rows, cols) mx_init(rows, cols, 0)
+#define MATRIX(rows, cols) __mx_init(NULL,rows, cols, 0)
+#define MATRIX_FROM(array,rows,cols) __mx_init(array, rows,cols, 0)
 #define MATRIX_VIEW(matrix) safe_mx_view(matrix)
 #define MATRIX_ONES(rows,cols)  \
     ((rows) <= 0 || (cols) <= 0) ? \
-    (perror("Invalid matrix dimensions."), (Matrix*)NULL) : \
+    (errno = EINVAL, perror("Invalid matrix dimensions."), (Matrix*)NULL) : \
     mx_view(NULL,rows,cols,1)
 
 /**
@@ -60,7 +66,7 @@
 /**
  * @brief Generates a matrix initialized with a specific value.
  * 
- * This macro is a shorthand for the `mx_init` function. It creates a new matrix of the 
+ * This macro is a shorthand for the `__mx_init` function. It creates a new matrix of the 
  * specified size and initializes all elements with `init_value`.
  *
  * @param rows The number of rows for the new matrix.
@@ -68,7 +74,7 @@
  * @param init_value The value with which all elements of the matrix should be initialized.
  * @return A pointer to the generated matrix initialized with `init_value`.
  */
-#define MATRIX_WITH(rows, cols, init_value) mx_init(rows, cols, init_value)
+#define MATRIX_WITH(rows, cols, init_value) __mx_init(NULL, rows, cols, init_value)
 
 #define TRANSPOSE(matrix) mx_transpose(matrix, 1U<<0)
 #define TRANSPOSE_VIEW(matrix) mx_transpose(matrix, 1U<<1)
@@ -141,7 +147,7 @@ void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype));
  * @return A pointer to the newly allocated matrix container or NULL if the 
  *         allocation failed.
  */
-__matrix_container* init_container(size_t size);
+__matrix_container* __init_container(dtype* array,size_t size);
 
 
 /**
@@ -155,7 +161,7 @@ __matrix_container* init_container(size_t size);
  * @param init_value The initial value for each matrix element.
  * @return A pointer to the newly allocated matrix or NULL if allocation failed.
  */
-Matrix* mx_init(size_t rows, size_t cols, dtype init_value);
+Matrix* __mx_init(dtype* array, size_t rows, size_t cols, dtype init_value);
 
 /**
  * @brief Creates a view of an existing matrix or initializes a lazy matrix.

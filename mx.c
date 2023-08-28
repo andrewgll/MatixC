@@ -3,9 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <errno.h>
 
 #include "mx.h"
-
 
 dtype sigmoidf(dtype value){
     return 1.0/(1+expf(-value));
@@ -39,20 +39,31 @@ void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype)) {
     return NULL;
 }
 
-__matrix_container* init_container(size_t size) {
+__matrix_container* __init_container(dtype* array, size_t size) {
     if(size == 0){
         return NULL;
     }
+    
     __matrix_container* container = malloc(sizeof(__matrix_container));
     if (!container) {
         return NULL;
     }
+
     container->ref_count = 1;
+
+    // Always allocate memory on the heap
     container->data = calloc(size, sizeof(dtype));
+
     if (!container->data) {
         free(container);
         return NULL;
     }
+
+    // If an external array is provided, copy the data over
+    if (array) {
+        memcpy(container->data, array, size * sizeof(dtype));
+    }
+
     return container;
 }
 
@@ -68,8 +79,7 @@ Matrix* mx_copy(const Matrix* src){
     return copy;
     
 }
-
-Matrix* mx_init(size_t rows, size_t cols, dtype init_value) {
+Matrix* __mx_init(dtype* array, size_t rows, size_t cols, dtype init_value) {
 
     if(!VALID_DIMENSIONS(rows, cols)){
         printf("Invalid matrix dimensions.");
@@ -81,7 +91,13 @@ Matrix* mx_init(size_t rows, size_t cols, dtype init_value) {
         return NULL;
     }
 
-    mat->container = init_container(cols*rows);
+    // Pass array to init_container
+    if(array){
+        mat->container = __init_container(array, cols * rows);
+    }
+    else{
+        mat->container = __init_container(NULL, cols * rows);
+    }
     if (!mat->container) {
         free(mat);
         return NULL;
@@ -96,8 +112,8 @@ Matrix* mx_init(size_t rows, size_t cols, dtype init_value) {
     mat->default_value = init_value;
     mat->flags = 0;
 
-    // Initialize only if the value is non-zero as calloc is used in init_container
-    if(init_value != 0){
+    // Initialize only if the value is non-zero and if an external array was not provided
+    if(init_value != 0 && !array){
         for(size_t i = 0; i < mat->rows; i++){
             for(size_t j = 0; j < mat->cols; j++){
                 AT(mat, i, j) = init_value;

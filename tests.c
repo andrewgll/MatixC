@@ -175,7 +175,7 @@ void test_matrix_indexing(void)
 
 void test_init_container_successful_allocation(void) {
     size_t size = 10;
-    __matrix_container* container = init_container(size);
+    __matrix_container* container = __init_container(NULL,size);
     
     TEST_ASSERT_NOT_NULL(container);
     TEST_ASSERT_NOT_NULL(container->data);
@@ -190,7 +190,7 @@ void test_mx_init_successful_allocation(void) {
     size_t cols = 3;
     dtype init_value = 5.0;
     
-    Matrix* mat = mx_init(rows, cols, init_value);
+    Matrix* mat = __mx_init(NULL,rows, cols, init_value);
     
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_NOT_NULL(mat->container);
@@ -215,7 +215,7 @@ void test_mx_init_zero_value(void) {
     size_t rows = 4;
     size_t cols = 4;
     
-    Matrix* mat = mx_init(rows, cols, 0);
+    Matrix* mat = __mx_init(NULL,rows, cols, 0);
     
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_NOT_NULL(mat->container);
@@ -1109,6 +1109,76 @@ void test_mx_view_ref_count_increase(void) {
     mx_free(view);
 }
 
+void test_mx_init_with_null_array(void) {
+    Matrix *mat = MATRIX_FROM(NULL, 2, 2);
+    TEST_ASSERT_NOT_NULL(mat);
+    TEST_ASSERT_EQUAL(2, mat->rows);
+    TEST_ASSERT_EQUAL(2, mat->cols);
+    mx_free(mat);
+    // Add any other checks relevant to the initial state
+}
+
+void test_mx_init_with_static_array(void) {
+    dtype sampleArray[2][2] = {{1, 2}, {3, 4}};
+    Matrix *mat = MATRIX_FROM((dtype *)sampleArray, 2, 2);
+    TEST_ASSERT_NOT_NULL(mat);
+    TEST_ASSERT_EQUAL(2, mat->rows);
+    TEST_ASSERT_EQUAL(2, mat->cols);
+    TEST_ASSERT_EQUAL_FLOAT(1, AT(mat, 0, 0));
+    TEST_ASSERT_EQUAL_FLOAT(2, AT(mat, 0, 1));
+    TEST_ASSERT_EQUAL_FLOAT(3, AT(mat, 1, 0));
+    TEST_ASSERT_EQUAL_FLOAT(4, AT(mat, 1, 1));
+    mx_free(mat);
+}
+
+void test_mx_init_with_zero_dimensions(void) {
+    Matrix *mat = MATRIX_FROM(NULL, 0, 0);
+    TEST_ASSERT_NULL(mat);
+    mx_free(mat);
+}
+
+void test_init_container_with_null_array(void) {
+    Matrix *mat = MATRIX_FROM(NULL, 1,4);
+    TEST_ASSERT_NOT_NULL(mat);
+    TEST_ASSERT_EQUAL(1, mat->container->ref_count);
+    mx_free(mat);
+}
+
+void test_init_matrix_with_static_array(void) {
+    dtype sampleArray[4] = {1, 2, 3, 4};
+    Matrix *m = MATRIX_FROM(sampleArray, 4,1);
+    TEST_ASSERT_NOT_NULL(m);
+    TEST_ASSERT_EQUAL(1, m->container->ref_count);
+    TEST_ASSERT_EQUAL_FLOAT_ARRAY(sampleArray, m->container->data, 4);
+    mx_free(m);
+}
+
+void test_init_container_with_zero_size(void) {
+    Matrix *container = MATRIX_FROM(NULL, 0,0);
+    TEST_ASSERT_NULL(container);
+    mx_free(container);
+}
+
+void test_init_matrix_with_dynamic_array(void) {
+    dtype* sampleArray = malloc(4 * sizeof(dtype));
+    if (sampleArray) {
+        sampleArray[0] = 1;
+        sampleArray[1] = 2;
+        sampleArray[2] = 3;
+        sampleArray[3] = 4;
+
+        Matrix *m = MATRIX_FROM(sampleArray, 4, 1);
+        TEST_ASSERT_NOT_NULL(m);
+        TEST_ASSERT_EQUAL(1, m->container->ref_count);
+        TEST_ASSERT_EQUAL_FLOAT_ARRAY(sampleArray, m->container->data, 4);
+
+        // Since the MATRIX_FROM function copies over the data and 
+        // always allocates its own memory, you can free the dynamic array here.
+        free(sampleArray);
+
+        mx_free(m);
+    }
+}
 
 int main(void) {
     UNITY_BEGIN();
@@ -1228,5 +1298,14 @@ int main(void) {
     RUN_TEST(test_MATRIX_ONES_data_values);
     RUN_TEST(test_MATRIX_ONES_metadata);
     RUN_TEST(test_mx_view_ref_count_increase);
+
+    // init from array
+    RUN_TEST(test_mx_init_with_null_array);
+    RUN_TEST(test_mx_init_with_static_array);
+    RUN_TEST(test_mx_init_with_zero_dimensions);
+    RUN_TEST(test_init_container_with_null_array);
+    RUN_TEST(test_init_matrix_with_static_array);
+    RUN_TEST(test_init_container_with_zero_size);
+    RUN_TEST(test_init_matrix_with_dynamic_array);
     return UNITY_END();
 }

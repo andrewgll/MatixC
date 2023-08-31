@@ -157,17 +157,90 @@ Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, dtype default_va
     return view;   
 }
 
-Matrix* mx_identity(size_t rows, size_t cols){
-    if(!VALID_DIMENSIONS(rows, cols)){
+Matrix* mx_identity(size_t rows){
+    if(!VALID_DIMENSIONS(rows, rows)){
         return NULL;
     }
-    Matrix* m = MATRIX(rows, cols);
+    
+    Matrix* m = MATRIX(rows, rows);
 
-    size_t min_dimension = (rows < cols) ? rows : cols;
-    for(size_t i = 0; i < min_dimension; i++){
+    for(size_t i = 0; i < rows; i++){
         AT(m,i,i) = 1;
     }
     return m;
+}
+
+dtype mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2){
+    if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols){
+        errno = EINVAL;
+        perror("Matrices must have the same dimensionality.");
+        return -1;
+    }
+
+    Matrix* product;
+    if(matrix1->rows == 1 && matrix2->rows == 1){
+        Matrix* mx2_transposed = TRANSPOSE_VIEW(matrix2);
+        product = mx_dot(matrix1, mx2_transposed);
+        mx_free(mx2_transposed);
+    }
+    else if( matrix1->cols == 1 && matrix2->cols ==1){
+        Matrix* mx1_transposed = TRANSPOSE_VIEW(matrix1);
+        product = mx_dot(mx1_transposed, matrix2);
+        mx_free(mx1_transposed);
+    }
+    else{
+        errno = EINVAL;
+        perror("Both matrices must be vectors.");
+        return -1;
+    }
+
+    dtype length1 = mx_length(matrix1);
+    dtype length2 = mx_length(matrix2);
+
+    if(length1 == 0 || length2 == 0) {
+        perror("One or both of the vectors have zero length.");
+        mx_free(product);
+        return -1;
+    }
+
+    dtype result = AT(product,0,0) / (length1 * length2);
+    mx_free(product);
+    return result;
+}
+
+Matrix* mx_unit_vector_from(const Matrix* matrix) {
+    // Check if matrix is valid
+    if (CHECK_MATRIX_VALIDITY(matrix) == -1) {
+        errno = EINVAL;
+        perror("Error in 'mx_unit_vector_from'. Invalid matrix for this operation");
+        return NULL;
+    }
+
+    // Check if matrix is in vector form
+    if (matrix->cols != 1 && matrix->rows != 1) {
+        errno = EINVAL;
+        perror("Matrix should be in vector form in order to calculate unit vector");
+        return NULL;    
+    }
+
+    Matrix* result = MATRIX_COPY(matrix);
+    float length = mx_length(matrix);
+
+    // Check if length is close to zero
+    if (fabs(length) < 1e-6) {
+        errno = EINVAL;
+        perror("Error in 'mx_unit_vector_from'. Vector length is too close to zero");
+        mx_free(result);  // Free the allocated matrix before returning
+        return NULL;
+    }
+
+    for (size_t i = 0; i < result->rows; i++) {
+        for (size_t j = 0; j < result->cols; j++) {
+            AT(result,i,j) /= length;
+        }
+    }
+
+    return result;
 }
 
 
@@ -302,6 +375,23 @@ Matrix* mx_add(const Matrix* matrix1, const Matrix* matrix2){
     return result;
 }
 
+dtype mx_length(const Matrix* matrix) {
+    if (matrix == NULL) {
+        errno = EINVAL;
+        perror("ERROR when 'mx_length': Matrix is NULL.\n");
+        return -1;
+    }
+
+    dtype value = 0;
+    for(size_t i = 0; i < matrix->rows; i++) {
+        for(size_t j = 0; j < matrix->cols; j++) {
+            dtype element = AT(matrix, i, j);
+            value += element * element;  // sum of squares of elements
+        }
+    }
+    return sqrt(value);
+}
+
 Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2){
     if(CHECK_MATRIX_VALIDITY(matrix1)==-1|| CHECK_MATRIX_VALIDITY(matrix2)==-1){
         return NULL;
@@ -381,7 +471,8 @@ dtype mx_self_dot_product(Matrix* vector) {
 
     // Ensure it's a vector
     if (vector->rows != 1 && vector->cols != 1) {
-        printf("ERROR when 'mx_self_dot_product': Input matrix is not a vector.");
+        errno = EINVAL;
+        perror("ERROR when 'mx_self_dot_product': Input matrix is not a vector.");
         return -1; // or any other error value or behavior
     }
 

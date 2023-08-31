@@ -587,12 +587,12 @@ void* mx_print(const Matrix* matrix) {
         for (size_t j = 0; j < matrix->cols; j++) {
             dtype value = AT(matrix,i,j);
             printf("%f", value);
-            if (j < matrix->cols - 1) {
+            if (j < (size_t)(matrix->rows - 1)) {
                 printf(", ");
             }
         }
         printf("]");
-        if (i < matrix->rows - 1) {
+        if (i < (size_t)(matrix->rows - 1)) {
             printf(",");
         }
 

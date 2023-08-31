@@ -19,14 +19,7 @@
 #define VALID_MATRIX(matrix) \
     ((matrix) && (matrix)->container && (matrix)->container->data && VALID_DIMENSIONS((matrix)->rows, (matrix)->cols))
 
-#define CHECK_MATRIX_VALIDITY(matrix) \
-    do { \
-        if (!VALID_MATRIX(matrix)) { \
-            errno = EINVAL; \
-            perror("Invalid matrix or matrix dimensions."); \
-            return NULL; \
-        } \
-    } while(0)
+#define CHECK_MATRIX_VALIDITY(matrix) matrix_is_valid(matrix)
 
 #define AT(matrix, i, j) \
     *(CHECK_FLAG((matrix)->flags, 0) ? \
@@ -50,6 +43,16 @@
  * @return A pointer to the copied matrix.
  */
 #define MATRIX_COPY(matrix) mx_copy(matrix)
+
+/**
+ * @brief Initializes and returns an identity matrix of the given dimensions.
+ * 
+ * An identity matrix has ones on the main diagonal and zeros elsewhere.
+ *
+ * @param rows The number of rows for the identity matrix.
+ * @return A pointer to the identity matrix or NULL if dimensions are invalid or memory allocation failed.
+ */
+#define MATRIX_IDENTITY(rows) mx_identity(rows)
 
 /**
  * @brief Generates a matrix with random values.
@@ -82,6 +85,9 @@
 
 #define ROW_SLICE(matrix,i,j) mx_slice(matrix,i,j,0,(matrix)->cols-1)
 #define COL_SLICE(matrix,i,j) mx_slice(matrix, 0, (matrix)->rows-1, i, j)
+
+#define UNIT_VECTOR_FROM(matrix) mx_unit_vector_from(matrix)
+#define UNIT_VECTOR(size) mx_identity(size)
 
 #define SET_FLAG(f, index)   ((f) |= (1U << (index)))
 #define CLEAR_FLAG(f, index) ((f) &= ~(1U << (index)))
@@ -186,6 +192,27 @@ static inline Matrix* safe_mx_view(const Matrix* matrix) {
     return mx_view(matrix, matrix->rows, matrix->cols, 0);
 }
 
+static inline int8_t matrix_is_valid(const Matrix* matrix) {
+    if (!VALID_MATRIX(matrix)) { 
+        errno = EINVAL; 
+        perror("Invalid matrix or matrix dimensions."); 
+        return -1; 
+    } 
+    return 1;
+}
+
+/**
+ * Calculate the Frobenius norm (or 'length') of a matrix.
+ * The Frobenius norm of a matrix A is the square root of the sum of the absolute squares of its elements.
+ *
+ * For a matrix A of dimensions MxN, the formula is:
+ * ||A||_F = sqrt(sum(sum(A_ij^2)))
+ *
+ * @param matrix The matrix whose length (or norm) is to be computed.
+ * @return The Frobenius norm of the matrix. Returns -1 if there's an error during computation.
+ */
+dtype mx_length(const Matrix* matrix);
+
 /**
  * @brief Initializes and returns an identity matrix of the given dimensions.
  * 
@@ -193,11 +220,31 @@ static inline Matrix* safe_mx_view(const Matrix* matrix) {
  * If the matrix is not square, only the main diagonal up to the minimum of 
  * rows and columns will be filled with ones.
  *
- * @param rows The number of rows for the identity matrix.
- * @param cols The number of columns for the identity matrix.
+ * @param rows The number of rows for the identity matrix(rows=cols).
  * @return A pointer to the identity matrix or NULL if dimensions are invalid or memory allocation failed.
  */
-Matrix* mx_identity(size_t rows, size_t cols);
+Matrix* mx_identity(size_t rows);
+
+/**
+ * @brief Compute the cosine of the angle between two vectors.
+ * 
+ * This function calculates the cosine of the angle between two matrices (vectors) 
+ * using the formula: cos(theta) = dot(matrix1, matrix2) / (||matrix1|| * ||matrix2||)
+ *
+ * @param matrix1 First vector.
+ * @param matrix2 Second vector.
+ * @return The cosine of the angle between the two vectors.
+ */
+dtype mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2);
+
+
+/**
+ * Generate a unit vector from the provided matrix (vector).
+ * 
+ * @param matrix Input matrix. Must be a row or column vector.
+ * @return Unit vector matrix, NULL if the input is invalid or not a vector.
+ */
+Matrix* mx_unit_vector_from(const Matrix* matrix);
 
 /**
  * @brief Determines if two matrices are equal.
@@ -288,6 +335,28 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  *         the function returns NULL.
  */
 Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2);
+
+/**
+ * @brief Computes the dot product of a vector with itself.
+ * 
+ * This function calculates the dot product (or scalar product) of a vector with 
+ * itself, effectively returning the squared magnitude of the vector. The input
+ * should be a 1D matrix, representing either a row or column vector.
+ *
+ * @param vector   Pointer to a Matrix structure representing a 1D vector. 
+ *                 The matrix should have either one row or one column.
+ * 
+ * @return The scalar result of the dot product. 
+ *         Returns -1 (or any other predefined error value) if:
+ *         - The matrix is invalid.
+ *         - The provided matrix is not a 1D vector (i.e., neither a row 
+ *           nor a column vector).
+ * 
+ * @note The function assumes that the matrix is well-formed and 
+ *       checks for matrix validity. For invalid matrices, it sets
+ *       the global 'errno' to EINVAL.
+ */
+dtype mx_self_dot_product(Matrix* vector);
 
 /**
  * @brief Extracts a submatrix (or slice) from a given source matrix based on specified start and end indices.

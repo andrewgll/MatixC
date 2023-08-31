@@ -489,7 +489,7 @@ void test_mx_scale_basic_scaling(void) {
     // Checking if all values are correctly scaled.
     for(size_t i = 0; i < rows; i++) {
         for(size_t j = 0; j < cols; j++) {
-            TEST_ASSERT_EQUAL_FLOAT(AT(matrix, i, j) * scalar, AT(scaled_matrix, i, j));
+            TEST_ASSERT_EQUAL_DTYPE(AT(matrix, i, j) * scalar, AT(scaled_matrix, i, j));
         }
     }
 
@@ -875,8 +875,8 @@ void test_COL_SLICE_macro(void) {
 }
 
 void test_mx_identity_square_matrix(void) {
-    size_t rows = 3, cols = 3;
-    Matrix* result = mx_identity(rows, cols);
+    size_t rows = 3;
+    Matrix* result = mx_identity(rows);
 
     // Check main diagonal elements
     TEST_ASSERT_EQUAL_DTYPE(1, AT(result, 0, 0));
@@ -895,8 +895,8 @@ void test_mx_identity_square_matrix(void) {
 }
 
 void test_mx_identity_non_square_matrix(void) {
-    size_t rows = 3, cols = 2;
-    Matrix* result = mx_identity(rows, cols);
+    size_t rows = 3;
+    Matrix* result = mx_identity(rows);
 
     // Check the elements
     TEST_ASSERT_EQUAL_DTYPE(1, AT(result, 0, 0));
@@ -911,14 +911,9 @@ void test_mx_identity_non_square_matrix(void) {
 }
 
 void test_mx_identity_invalid_dimensions(void) {
-    Matrix* result = mx_identity(0, 2);
+    Matrix* result = mx_identity(0);
     TEST_ASSERT_NULL(result);
-
-    result = mx_identity(3, 0);
-    TEST_ASSERT_NULL(result);
-
-    result = mx_identity(0, 0);
-    TEST_ASSERT_NULL(result);
+    
 }
 
 void test_basic_equality(void) {
@@ -1124,10 +1119,10 @@ void test_mx_init_with_static_array(void) {
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_EQUAL(2, mat->rows);
     TEST_ASSERT_EQUAL(2, mat->cols);
-    TEST_ASSERT_EQUAL_FLOAT(1, AT(mat, 0, 0));
-    TEST_ASSERT_EQUAL_FLOAT(2, AT(mat, 0, 1));
-    TEST_ASSERT_EQUAL_FLOAT(3, AT(mat, 1, 0));
-    TEST_ASSERT_EQUAL_FLOAT(4, AT(mat, 1, 1));
+    TEST_ASSERT_EQUAL_DTYPE(1, AT(mat, 0, 0));
+    TEST_ASSERT_EQUAL_DTYPE(2, AT(mat, 0, 1));
+    TEST_ASSERT_EQUAL_DTYPE(3, AT(mat, 1, 0));
+    TEST_ASSERT_EQUAL_DTYPE(4, AT(mat, 1, 1));
     mx_free(mat);
 }
 
@@ -1178,6 +1173,133 @@ void test_init_matrix_with_dynamic_array(void) {
 
         mx_free(m);
     }
+}
+
+void test_self_dot_product_with_valid_row_vector(void) {
+    dtype data[3] = {1.0, 2.0, 3.0};
+    Matrix *row_vector = MATRIX_FROM(data, 1, 3);
+    
+    dtype result = mx_self_dot_product(row_vector);
+    
+    TEST_ASSERT_FLOAT_WITHIN(0.0001, 14.0, result);  // Expected value is 1^2 + 2^2 + 3^2 = 14
+    
+    mx_free(row_vector);
+}
+
+void test_self_dot_product_with_valid_column_vector(void) {
+    dtype data[3] = {1.0, 2.0, 3.0};
+    Matrix *col_vector = MATRIX_FROM(data, 3, 1);
+    
+    dtype result = mx_self_dot_product(col_vector);
+    
+    TEST_ASSERT_FLOAT_WITHIN(0.0001, 14.0, result);
+    
+    mx_free(col_vector);
+}
+
+void test_self_dot_product_with_invalid_2D_matrix(void) {
+    dtype data[4] = {1.0, 2.0, 3.0, 4.0};
+    Matrix *matrix = MATRIX_FROM(data, 2, 2);
+    
+    dtype result = mx_self_dot_product(matrix);
+    
+    TEST_ASSERT_EQUAL_DTYPE(-1.0, result);  // Assuming -1.0 is returned for invalid matrices
+    
+    mx_free(matrix);
+}
+
+void test_self_dot_product_with_null_vector(void) {
+    dtype result = mx_self_dot_product(NULL);
+    
+    TEST_ASSERT_EQUAL_DTYPE(-1.0, result);
+}
+
+
+void test_vector_length_for_valid_vector(void) {
+    // Test 1: Vector with 3 elements: [3, 4, 0]
+    Matrix* vector1 = MATRIX_WITH(3, 1, 0);
+    AT(vector1, 0, 0) = 3;
+    AT(vector1, 1, 0) = 4;
+    TEST_ASSERT_EQUAL_DTYPE(5.0, mx_length(vector1));
+    mx_free(vector1);
+}
+
+void test_vector_length_for_zero_vector(void) {
+    // Test 2: Vector with 2 elements: [0, 0]
+    Matrix* vector2 = MATRIX_WITH(2, 1, 0);
+    TEST_ASSERT_EQUAL_DTYPE(0.0, mx_length(vector2));
+    mx_free(vector2);
+}
+
+void test_vector_length_for_non_vector_matrix(void) {
+    Matrix* matrix = MATRIX_WITH(2, 2, 5);
+    TEST_ASSERT_EQUAL_DTYPE(10, mx_length(matrix)); 
+    mx_free(matrix);
+}
+void test_vector_length_for_4dim_vector_matrix(void) {
+    // Test 4: Vector with 4x1 dimensions 
+    Matrix* matrix = MATRIX_WITH(4,1, 1);
+    TEST_ASSERT_EQUAL_DTYPE(2, mx_length(matrix));  // Assuming -1 is the error value
+    mx_free(matrix);
+}
+
+void test_unit_vector_length(void){
+    Matrix* unit_vector = MATRIX_IDENTITY(1);
+    dtype length = mx_length(unit_vector);
+    TEST_ASSERT_EQUAL_DTYPE(1, length);
+    mx_free(unit_vector);
+}
+
+void test_cosine_between_two_vectors(void) {
+    Matrix* m = MATRIX(3,1);
+    AT(m,0,0) = 12;
+    AT(m,1,0) = 23;
+    AT(m,2,0) = 511;
+
+    Matrix* m1 = MATRIX(3,1);
+    AT(m1,0,0) = 9;
+    AT(m1,1,0) = -1;
+    AT(m1,2,0) = -123;
+
+    dtype cosine = mx_cosine_between_two_vectors(m, m1);
+
+    TEST_ASSERT_FLOAT_WITHIN(0.000001, -0.994671, cosine);
+    mx_free(m);
+    mx_free(m1);
+}
+
+void test_memory_allocation_and_deallocation(void) {
+    Matrix* m = MATRIX(5,5);
+    TEST_ASSERT_NOT_NULL(m);
+
+    mx_free(m);
+    // Perhaps add a custom function to validate that memory was actually freed
+}
+
+void test_invalid_matrix_dimensions(void) {
+    Matrix* m = MATRIX(0,5); // Invalid rows
+    TEST_ASSERT_NULL(m);
+
+    Matrix* n = MATRIX(5,0); // Invalid columns
+    TEST_ASSERT_NULL(n);
+}
+
+void test_cosine_of_orthogonal_vectors(void) {
+    Matrix* m = MATRIX(3,1);
+    AT(m,0,0) = 1;
+    AT(m,1,0) = 0;
+    AT(m,2,0) = 0;
+
+    Matrix* m1 = MATRIX(3,1);
+    AT(m1,0,0) = 0;
+    AT(m1,1,0) = 1;
+    AT(m1,2,0) = 0;
+
+    dtype cosine = mx_cosine_between_two_vectors(m, m1);
+    TEST_ASSERT_FLOAT_WITHIN(0.000001, 0.0, cosine);  // Orthogonal vectors
+
+    mx_free(m);
+    mx_free(m1);
 }
 
 int main(void) {
@@ -1307,5 +1429,22 @@ int main(void) {
     RUN_TEST(test_init_matrix_with_static_array);
     RUN_TEST(test_init_container_with_zero_size);
     RUN_TEST(test_init_matrix_with_dynamic_array);
+
+    // self-dot
+    RUN_TEST(test_self_dot_product_with_valid_row_vector);
+    RUN_TEST(test_self_dot_product_with_valid_column_vector);
+    RUN_TEST(test_self_dot_product_with_invalid_2D_matrix);
+    RUN_TEST(test_self_dot_product_with_null_vector);
+
+    // vector length
+    RUN_TEST(test_vector_length_for_valid_vector);
+    RUN_TEST(test_vector_length_for_zero_vector);
+    RUN_TEST(test_vector_length_for_non_vector_matrix);
+    RUN_TEST(test_unit_vector_length);
+
+    // cosine between vectors
+    RUN_TEST(test_cosine_between_two_vectors);
+    RUN_TEST(test_memory_allocation_and_deallocation);
+    RUN_TEST(test_invalid_matrix_dimensions);
     return UNITY_END();
 }

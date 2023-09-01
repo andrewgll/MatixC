@@ -686,7 +686,7 @@ void test_dot_valid_matrices(void) {
     Matrix* matrix1 = mx_arrange(2, 3, 1);  // Produces [[1,2,3], [4,5,6]]
     Matrix* matrix2 = mx_arrange(3, 2, 1);  // Produces [[1,2], [3,4], [5,6]]
 
-    Matrix* result = mx_dot(matrix1, matrix2);
+    Matrix* result = DOT(matrix1, matrix2);
 
     TEST_ASSERT_EQUAL_DTYPE(22, AT(result, 0, 0));
     TEST_ASSERT_EQUAL_DTYPE(28, AT(result, 0, 1));
@@ -702,7 +702,7 @@ void test_dot_valid_matrices(void) {
 //     Matrix* matrix1 = MATRIX(2, 2);
 //     Matrix* matrix2 = MATRIX(3, 2);
 
-//     Matrix* result = mx_dot(matrix1, matrix2);
+//     Matrix* result = DOT(matrix1, matrix2);
 
 //     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
@@ -715,10 +715,10 @@ void test_dot_null_matrices(void) {
     Matrix* matrix1 = NULL;
     Matrix* matrix2 = MATRIX(2, 2);
 
-    Matrix* result = mx_dot(matrix1, matrix2);
+    Matrix* result = DOT(matrix1, matrix2);
     TEST_ASSERT_NULL(result);
 
-    result = mx_dot(matrix2, matrix1);
+    result = DOT(matrix2, matrix1);
     TEST_ASSERT_NULL(result);
 
     mx_free(matrix2);
@@ -729,7 +729,7 @@ void test_dot_matrix_and_its_transpose(void) {
     Matrix* matrix1 = mx_arrange(2, 3, 1);   // Produces [[1,2,3], [4,5,6]]
     Matrix* matrix2 = TRANSPOSE_VIEW(matrix1); // Should produce [[1,4], [2,5], [3,6]]
 
-    Matrix* result = mx_dot(matrix1, matrix2);
+    Matrix* result = DOT(matrix1, matrix2);
 
     TEST_ASSERT_EQUAL_DTYPE(14, AT(result, 0, 0));
     TEST_ASSERT_EQUAL_DTYPE(32, AT(result, 0, 1));
@@ -1302,6 +1302,213 @@ void test_cosine_of_orthogonal_vectors(void) {
     mx_free(m1);
 }
 
+void test_shwarz_inequality(void) {
+    // Schwarz inequality |v * w| <= ||v|| * ||w||
+    Matrix* rand1 = MATRIX(1, 3);
+    Matrix* rand2 = MATRIX(1, 3);
+
+    AT(rand1, 0, 0) = 1;
+    AT(rand1, 0, 1) = 2;
+    AT(rand1, 0, 2) = 4;
+
+    AT(rand2, 0, 0) = 4;
+    AT(rand2, 0, 1) = 2;
+    AT(rand2, 0, 2) = 13;
+    
+    Matrix* dot = DOT(rand1, rand2);
+    dtype length1 = mx_length(rand1);
+    dtype length2 = mx_length(rand2);
+    dtype result = length1 * length2;
+
+    // Check that dot product is less than or equal to the product of lengths
+    TEST_ASSERT_LESS_OR_EQUAL(result,AT(dot, 0, 0));
+
+    // Clean up
+    // Free your matrices if necessary
+    mx_free(rand1);
+    mx_free(rand2);
+    mx_free(dot);
+}
+
+void problem121(void){
+    Matrix* u = MATRIX(1,2);
+    AT(u,0,0) = -6;
+    AT(u,0,1) = 8;
+    
+    Matrix* v = MATRIX(1,2);
+    AT(v,0,0) = 3;
+    AT(v,0,1) = 4;
+    
+    Matrix* w = MATRIX(1,2);
+    AT(w,0,0) = 8;
+    AT(w,0,1) = 6;
+
+    Matrix* uv_dot = DOT(u,v);
+    TEST_ASSERT_EQUAL(AT(uv_dot,0,0), 14);
+    Matrix* uw_dot = DOT(u,w);
+    TEST_ASSERT_EQUAL(AT(uw_dot,0,0), 0);
+    Matrix* uw_add = mx_add(u,w);
+    TEST_ASSERT_EQUAL(AT(uw_add,0,0), 2);
+    TEST_ASSERT_EQUAL(AT(uw_add,0,1), 14);
+    Matrix* u_dot_uw_add = DOT(u,uw_add);
+    TEST_ASSERT_EQUAL(AT(u_dot_uw_add,0,0), 100);
+    
+    mx_free(u);
+    mx_free(v);
+    mx_free(w);
+    mx_free(uv_dot);
+    mx_free(uw_dot);
+    mx_free(uw_add);
+    mx_free(u_dot_uw_add); 
+}
+
+void problem122(void){
+    Matrix* u = MATRIX(1,2);
+    AT(u,0,0) = -6;
+    AT(u,0,1) = 8;
+    
+    Matrix* v = MATRIX(1,2);
+    AT(v,0,0) = 3;
+    AT(v,0,1) = 4;
+    
+    Matrix* w = MATRIX(1,2);
+    AT(w,0,0) = 8;
+    AT(w,0,1) = 6;
+
+    dtype length_u = mx_length(u);
+    dtype length_v = mx_length(v);
+    dtype length_w = mx_length(w);
+
+    TEST_ASSERT_EQUAL(length_u, 10);
+    TEST_ASSERT_EQUAL(length_v, 5);
+    TEST_ASSERT_EQUAL(length_w, 10);
+
+    Matrix* u_dot_v = DOT(u,v);
+    Matrix* u_dot_w = DOT(u,w);
+    
+    //Shwarz inequality
+
+    TEST_ASSERT_LESS_OR_EQUAL(length_u*length_v, AT(u_dot_v,0,0));
+    TEST_ASSERT_LESS_OR_EQUAL(length_u*length_w, AT(u_dot_w,0,0));
+    
+    mx_free(u);
+    mx_free(v);
+    mx_free(w);
+    mx_free(u_dot_v);
+    mx_free(u_dot_w);
+}
+
+void problem123(void){
+    
+    Matrix* v = MATRIX(1,2);
+    AT(v,0,0) = 3;
+    AT(v,0,1) = 4;
+    
+    Matrix* w = MATRIX(1,2);
+    AT(w,0,0) = 8;
+    AT(w,0,1) = 6;
+
+    Matrix* v_unit_vector = UNIT_VECTOR_FROM(v);
+    Matrix* w_unit_vector = UNIT_VECTOR_FROM(w);
+
+    TEST_ASSERT_EQUAL(3/5, AT(v_unit_vector,0,0));
+    TEST_ASSERT_EQUAL(4/5, AT(v_unit_vector,0,1));
+    TEST_ASSERT_EQUAL(8/10, AT(w_unit_vector,0,0));
+    TEST_ASSERT_EQUAL(6/10, AT(w_unit_vector,0,1));
+
+    dtype cosine = mx_cosine_between_two_vectors(v,w);
+
+    TEST_ASSERT_EQUAL(48/50, cosine);
+
+    mx_free(v);
+    mx_free(w);
+    mx_free(v_unit_vector);
+    mx_free(w_unit_vector);
+    
+}
+
+void problem124(void){
+    Matrix* u = MATRIX(1,2);
+    AT(u,0,0) = -6;
+    AT(u,0,1) = 8;
+    
+    Matrix* v = MATRIX(1,2);
+    AT(v,0,0) = 3;
+    AT(v,0,1) = 4;
+    
+    Matrix* w = MATRIX(1,2);
+    AT(w,0,0) = 8;
+    AT(w,0,1) = 6;
+
+    Matrix* minus_u = SCALAR_DOT(u, -1);
+    Matrix* dot = DOT(u,minus_u);
+    TEST_ASSERT_EQUAL(-100, AT(dot,0,0));
+
+    Matrix* v_plus_w = mx_add(v,w);
+    Matrix* v_minus_w = mx_subtract(v,w);
+    Matrix* v_pm_dot_w = DOT(v_plus_w,v_minus_w);
+    TEST_ASSERT_EQUAL(-75, AT(v_pm_dot_w,0,0));
+
+    Matrix* w_scaled = SCALAR_DOT(w,2);
+    Matrix* v_plus_scaled_w = mx_add(v,w_scaled);
+    Matrix* v_minus_scaled_w = mx_subtract(v,w_scaled);
+    Matrix* v_ps_ms_dot_w = DOT(v_plus_scaled_w,v_minus_scaled_w);
+    TEST_ASSERT_EQUAL(-375, AT(v_ps_ms_dot_w,0,0));
+
+    mx_free(u);
+    mx_free(v);
+    mx_free(w);
+    mx_free(minus_u);
+    mx_free(dot);
+    mx_free(v_plus_w);
+    mx_free(v_minus_w);
+    mx_free(v_pm_dot_w);
+    mx_free(w_scaled);
+    mx_free(v_plus_scaled_w);
+    mx_free(v_minus_scaled_w);
+    mx_free(v_ps_ms_dot_w);
+}
+
+void problem125(void){
+    Matrix* u = MATRIX(1,2);
+    AT(u,0,0) = 3;
+    AT(u,0,1) = 1;
+    
+    Matrix* w = MATRIX(1,3);
+    AT(w,0,0) = 2;
+    AT(w,0,1) = 1;
+    AT(w,0,2) = 2;
+
+    Matrix* u_unit_vector = UNIT_VECTOR_FROM(u);
+    Matrix* w_unit_vector = UNIT_VECTOR_FROM(w);
+
+    TEST_ASSERT_EQUAL_DTYPE(3/sqrt(10), AT(u_unit_vector,0,0));
+    TEST_ASSERT_EQUAL_DTYPE(1/sqrt(10), AT(u_unit_vector,0,1));
+
+    TEST_ASSERT_EQUAL_DTYPE((dtype)(2.0/3), AT(w_unit_vector,0,0));
+    TEST_ASSERT_EQUAL_DTYPE((dtype)(1.0/3), AT(w_unit_vector,0,1));
+    TEST_ASSERT_EQUAL_DTYPE((dtype)(2.0/3), AT(w_unit_vector,0,2));
+
+    Matrix* u_perpendicular = mx_perpendicular(u);
+    // Matrix* w_perpendicular = mx_perpendicular(w);
+    // should be 0
+    Matrix* u_perpendicular_dot = DOT(u,u_perpendicular);
+    // Matrix* w_perpendicular_dot = DOT(w,w_perpendicular);
+
+    TEST_ASSERT_EQUAL(0,AT(u_perpendicular_dot,0,0));
+    // TEST_ASSERT_EQUAL(0,w_perpendicular_dot);
+
+    mx_free(u_perpendicular);
+    // mx_free(w_perpendicular);
+    // mx_free(w_perpendicular_dot);
+    mx_free(u_perpendicular_dot);
+    mx_free(u);
+    mx_free(w);
+    mx_free(u_unit_vector);
+    mx_free(w_unit_vector);
+    TEST_IGNORE_MESSAGE("Ignore perpendicular for 3D vector because of missing cross-product");
+}
+
 int main(void) {
     UNITY_BEGIN();
 
@@ -1446,5 +1653,13 @@ int main(void) {
     RUN_TEST(test_cosine_between_two_vectors);
     RUN_TEST(test_memory_allocation_and_deallocation);
     RUN_TEST(test_invalid_matrix_dimensions);
+
+    // Problem set 1.2 (Gilbert Strang Introduction to Linear Algebra 4th edition)
+    RUN_TEST(test_shwarz_inequality);
+    RUN_TEST(problem121);
+    RUN_TEST(problem122);
+    RUN_TEST(problem123);
+    RUN_TEST(problem124);
+    RUN_TEST(problem125);
     return UNITY_END();
 }

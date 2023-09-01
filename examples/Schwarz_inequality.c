@@ -22,6 +22,6 @@ int main(void){
     // as result ratio of dot/length1*length2 must be <= 1,
     // that's why cosine is never bigger then 1.
     // cos = |v * w| / ||v|||*||w||
-    // if the ration is 1, then it is 90 degree angle.
+    // if ratio is 0, then it is 90 degree angle.
     printf("%f\n", result);
 }

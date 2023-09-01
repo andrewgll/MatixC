@@ -11,6 +11,12 @@ dtype sigmoidf(dtype value){
     return 1.0/(1+expf(-value));
 }
 
+void swap(dtype *a, dtype *b) {
+    *a = *a + *b;
+    *b = *a - *b;
+    *a = *a - *b;
+}
+
 void mx_free(Matrix *matrix) {
     if (matrix)  {
         if(matrix->container){
@@ -158,8 +164,12 @@ Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, dtype default_va
     }
     return view;   
 }
-
+// TODO this can be replaced with macros
 Matrix* mx_identity(size_t rows){
+    return mx_diagonal(rows, 1);
+}
+
+Matrix* mx_diagonal(size_t rows, dtype value){
     if(!VALID_DIMENSIONS(rows, rows)){
         return NULL;
     }
@@ -167,7 +177,7 @@ Matrix* mx_identity(size_t rows){
     Matrix* m = MATRIX(rows, rows);
 
     for(size_t i = 0; i < rows; i++){
-        AT(m,i,i) = 1;
+        AT(m,i,i) = value;
     }
     return m;
 }
@@ -182,12 +192,12 @@ dtype mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2){
     Matrix* product;
     if(matrix1->rows == 1 && matrix2->rows == 1){
         Matrix* mx2_transposed = TRANSPOSE_VIEW(matrix2);
-        product = mx_dot(matrix1, mx2_transposed);
+        product = DOT(matrix1, mx2_transposed);
         mx_free(mx2_transposed);
     }
     else if( matrix1->cols == 1 && matrix2->cols ==1){
         Matrix* mx1_transposed = TRANSPOSE_VIEW(matrix1);
-        product = mx_dot(mx1_transposed, matrix2);
+        product = DOT(mx1_transposed, matrix2);
         mx_free(mx1_transposed);
     }
     else{
@@ -208,6 +218,36 @@ dtype mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2){
     dtype result = AT(product,0,0) / (length1 * length2);
     mx_free(product);
     return result;
+}
+
+Matrix* mx_perpendicular(const Matrix* matrix){
+    // Check if matrix is valid
+    if (CHECK_MATRIX_VALIDITY(matrix) == -1) {
+        errno = EINVAL;
+        perror("Error in 'mx_unit_vector_from'. Invalid matrix for this operation");
+        return NULL;
+    }
+    // Check if matrix is in vector form
+    if (matrix->cols != 1 && matrix->rows != 1) {
+        errno = EINVAL;
+        perror("Matrix should be in vector form in order to calculate unit vector");
+        return NULL;    
+    }
+    Matrix* m_copy = MATRIX_COPY(matrix);
+    if(m_copy->rows == 2 || m_copy->cols == 2){
+        swap(&AT(m_copy,0,0), &AT(m_copy,0,1));
+        AT(m_copy,0,0) *= -1;
+        return m_copy;
+    }
+    if(m_copy->rows == 3 || m_copy->cols == 3){
+        // CROSS PRODUCT
+        // PASS
+        return NULL;
+    }
+    errno = EINVAL;
+    perror("ERROR: infinite many perpendiculars for more then 3 dimensional vector");
+    return NULL;
+
 }
 
 Matrix* mx_unit_vector_from(const Matrix* matrix) {
@@ -424,23 +464,41 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2){
     return result;
 }
 
-Matrix* 
-mx_dot(const Matrix* matrix1, const Matrix* matrix2){
-    if(CHECK_MATRIX_VALIDITY(matrix1) == -1 || CHECK_MATRIX_VALIDITY(matrix2) == -1){
+Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, dtype scalar, uint8_t flags){
+
+    Matrix* m1_copy;
+    Matrix* m2_copy;
+    if(CHECK_FLAG(flags,0)){
+        if(CHECK_MATRIX_VALIDITY(matrix1) == -1 || CHECK_MATRIX_VALIDITY(matrix2) == -1){
+            return NULL;
+        }   
+        m1_copy = MATRIX_COPY(matrix1);
+        m2_copy = MATRIX_COPY(matrix2);
+    }
+    else if(CHECK_FLAG(flags,1)){
+    // it's a vector-scalar multiplication
+        if(CHECK_MATRIX_VALIDITY(matrix1) == -1){
+            return NULL;
+        }  
+        m1_copy = MATRIX_COPY(matrix1);
+        m2_copy = MATRIX_DIAGONAL(matrix1->cols, scalar);
+        
+    }
+    else{
+        errno = EINVAL;
+        perror("ERROR when 'mx_dot': Unspecified flags.");
         return NULL;
     }
-    
-    Matrix* m1_copy = MATRIX_COPY(matrix1);
-    Matrix* m2_copy = MATRIX_COPY(matrix2);
-    if(matrix1->cols != matrix2->rows){
-        if (matrix1->cols == matrix2->cols) {
+    if(m1_copy->cols != m2_copy->rows){
+        if (m1_copy->cols == m2_copy->cols) {
             TRANSPOSE(m2_copy);
         }
-        else if(matrix1->rows == matrix2->rows){
+        else if(m1_copy->rows == m2_copy->rows){
             TRANSPOSE(m1_copy);
         }
         else {
-            printf("ERROR when 'mx_dot': Matrices are not compatible for dot product.");
+            errno = EINVAL;
+            perror("ERROR when 'mx_dot': Matrices are not compatible for dot product.");
             mx_free((Matrix*) m1_copy);
             mx_free((Matrix*) m2_copy);
             return NULL;
@@ -450,7 +508,8 @@ mx_dot(const Matrix* matrix1, const Matrix* matrix2){
     if (!result) {
         mx_free((Matrix*) m1_copy);
         mx_free((Matrix*) m2_copy);
-        printf("ERROR when 'mx_dot': Unable to allocate memory for result matrix.");
+        errno = EINVAL;
+        perror("ERROR when 'mx_dot': Unable to allocate memory for result matrix.");
         return NULL;
     }
     for(size_t i = 0; i < m1_copy->rows; i++){

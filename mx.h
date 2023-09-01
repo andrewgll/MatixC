@@ -54,6 +54,8 @@
  */
 #define MATRIX_IDENTITY(rows) mx_identity(rows)
 
+#define MATRIX_DIAGONAL(rows,value) mx_diagonal(rows,value)
+
 /**
  * @brief Generates a matrix with random values.
  * 
@@ -89,6 +91,10 @@
 #define UNIT_VECTOR_FROM(matrix) mx_unit_vector_from(matrix)
 #define UNIT_VECTOR(size) mx_identity(size)
 
+#define DOT(matrix1, matrix2) mx_dot(matrix1, matrix2, 0, 1U<<0)
+#define SCALAR_DOT(matrix, scalar_value) mx_dot(matrix, NULL, scalar_value, 1U<<1)
+
+
 #define SET_FLAG(f, index)   ((f) |= (1U << (index)))
 #define CLEAR_FLAG(f, index) ((f) &= ~(1U << (index)))
 #define CHECK_FLAG(f, index) (((f) & (1U << (index))) != 0)
@@ -110,6 +116,7 @@ typedef struct{
 
 dtype sigmoidf(dtype value);
 
+void swap(dtype *a, dtype *b);
 /**
  * @brief Frees the memory of a matrix, taking shared data containers into account.
  *
@@ -161,7 +168,7 @@ __matrix_container* __init_container(dtype* array,size_t size);
  *
  * Allocates memory for a matrix with given rows and columns. Each element of the
  * matrix is initialized with the provided initial value.
- *
+ * 
  * @param rows The number of rows for the matrix.
  * @param cols The number of columns for the matrix.
  * @param init_value The initial value for each matrix element.
@@ -224,6 +231,8 @@ dtype mx_length(const Matrix* matrix);
  * @return A pointer to the identity matrix or NULL if dimensions are invalid or memory allocation failed.
  */
 Matrix* mx_identity(size_t rows);
+
+Matrix* mx_diagonal(size_t rows, dtype value);
 
 /**
  * @brief Compute the cosine of the angle between two vectors.
@@ -293,6 +302,7 @@ Matrix* mx_arrange(size_t rows, size_t cols, dtype start_arrange);
 Matrix* mx_rand(size_t rows, size_t cols);
 
 /**
+ * --DEPRECATED--
  * Scales all elements of the given matrix by a scalar value.
  *
  * @param matrix The input matrix to be scaled.
@@ -334,7 +344,9 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  *         are not compatible and cannot be made compatible by transposing, 
  *         the function returns NULL.
  */
-Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2);
+Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, dtype scalar, uint8_t flags);
+
+Matrix* mx_perpendicular(const Matrix* matrix);
 
 /**
  * @brief Computes the dot product of a vector with itself.

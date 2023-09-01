@@ -334,7 +334,7 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  *         are not compatible and cannot be made compatible by transposing, 
  *         the function returns NULL.
  */
-Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2);
+Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2);
 
 /**
  * @brief Computes the dot product of a vector with itself.

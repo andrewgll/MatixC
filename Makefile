@@ -38,7 +38,7 @@ mx_debug:
 	$(CC) $(CDEBUGFLAGS) -c mx.c -o $(OBJ_DIR)/mx.o
 
 example: mx_debug
-	$(CC) $(CDEBUGFLAGS) examples/unit_vector.c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
+	$(CC) $(CDEBUGFLAGS) examples/Schwarz_inequality.c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
 
 tests: clone_unity mx_debug
 	$(CC) $(CDEBUGFLAGS) tests.c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDFLAGS)

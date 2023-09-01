@@ -79,6 +79,8 @@ Matrix* mx_copy(const Matrix* src){
         printf("Failed to create matrix.");
         return NULL;
     }
+    copy->col_stride = src->col_stride;
+    copy->row_stride = src->row_stride;
     memcpy(copy->container->data, src->container->data, sizeof(dtype) * src->rows*src->cols);
     return copy;
     
@@ -261,6 +263,7 @@ uint8_t mx_equal(Matrix* matrix1, Matrix* matrix2){
     }
     return 1;
 }
+
 Matrix* mx_transpose(Matrix* matrix, uint8_t flags){
     Matrix* mx_transposed;
     if(CHECK_MATRIX_VALIDITY(matrix) == -1){
@@ -268,11 +271,15 @@ Matrix* mx_transpose(Matrix* matrix, uint8_t flags){
     }
 
     if(CHECK_FLAG(flags,0) == 1){
-        if(matrix->rows != matrix->cols){
-            perror("In-place transpose only supported for square matrices.");
-            return NULL;
-        }
-        mx_transposed = matrix;
+        dtype rows = matrix->rows;
+        matrix->rows = matrix->cols;
+        matrix->cols = rows;
+        
+        dtype row_stride = matrix->row_stride;    
+        matrix->row_stride = matrix->col_stride;      
+        matrix->col_stride = row_stride;
+        return matrix; 
+
     }
     else if(CHECK_FLAG(flags,2) == 1){
         mx_transposed = MATRIX_COPY(matrix);
@@ -417,49 +424,47 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2){
     return result;
 }
 
-Matrix* mx_dot(Matrix* matrix1, Matrix* matrix2){
+Matrix* 
+mx_dot(const Matrix* matrix1, const Matrix* matrix2){
     if(CHECK_MATRIX_VALIDITY(matrix1) == -1 || CHECK_MATRIX_VALIDITY(matrix2) == -1){
         return NULL;
     }
     
-    const Matrix* actual_matrix2 = matrix2;
-
-    if (matrix1->cols != matrix2->rows) {
+    Matrix* m1_copy = MATRIX_COPY(matrix1);
+    Matrix* m2_copy = MATRIX_COPY(matrix2);
+    if(matrix1->cols != matrix2->rows){
         if (matrix1->cols == matrix2->cols) {
-            actual_matrix2 = TRANSPOSE_VIEW(matrix2); 
-            if (!actual_matrix2) {
-                printf("ERROR when 'mx_dot': Unable to create transposed view of matrix2.");
-                return NULL;
-            }
-        } else {
+            TRANSPOSE(m2_copy);
+        }
+        else if(matrix1->rows == matrix2->rows){
+            TRANSPOSE(m1_copy);
+        }
+        else {
             printf("ERROR when 'mx_dot': Matrices are not compatible for dot product.");
+            mx_free((Matrix*) m1_copy);
+            mx_free((Matrix*) m2_copy);
             return NULL;
         }
     }
-
-    Matrix* result = MATRIX(matrix1->rows, actual_matrix2->cols);
+    Matrix* result = MATRIX(m1_copy->rows, m2_copy->cols);
     if (!result) {
-        if (actual_matrix2 != matrix2) {
-            mx_free((Matrix*) actual_matrix2);
-        }
+        mx_free((Matrix*) m1_copy);
+        mx_free((Matrix*) m2_copy);
         printf("ERROR when 'mx_dot': Unable to allocate memory for result matrix.");
         return NULL;
     }
-
-    for(size_t i = 0; i < matrix1->rows; i++){
-        for(size_t j = 0; j < actual_matrix2->cols; j++){            
+    for(size_t i = 0; i < m1_copy->rows; i++){
+        for(size_t j = 0; j < m2_copy->cols; j++){            
             dtype sum = 0;
-            for(size_t k = 0; k < matrix1->cols; k++){
-                sum += AT(matrix1, i, k) * AT(actual_matrix2, k, j);
+            for(size_t k = 0; k < m1_copy->cols; k++){
+                sum += AT(m1_copy, i, k) * AT(m2_copy, k, j);
             }
             AT(result, i, j) = sum;
         }
     }
 
-    if (actual_matrix2 != matrix2) {
-        mx_free((Matrix*) actual_matrix2);
-    }
-
+    mx_free((Matrix*) m1_copy);
+    mx_free((Matrix*) m2_copy);
     return result;
 }
 
@@ -587,7 +592,7 @@ void* mx_print(const Matrix* matrix) {
         for (size_t j = 0; j < matrix->cols; j++) {
             dtype value = AT(matrix,i,j);
             printf("%f", value);
-            if (j < (size_t)(matrix->rows - 1)) {
+            if (j < (size_t)(matrix->cols)-1) {
                 printf(", ");
             }
         }

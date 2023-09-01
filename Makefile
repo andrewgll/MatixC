@@ -15,7 +15,6 @@ UNITY_TEST_EXECUTABLE=$(OBJ_DIR)/unity_test
 
 ANALYSIS_CHECKERS=-enable-checker core -enable-checker alpha -enable-checker unix -enable-checker cplusplus
 
-
 # Release flags
 CFLAGS=-O2 $(COMMON_FLAGS)
 
@@ -25,7 +24,7 @@ CDEBUGFLAGS=-g -O0 $(COMMON_FLAGS)
 # Static analysis output directory
 ANALYSIS_OUTPUT_DIR=analysis_output
 
-.PHONY: all debug clean tests run unity_tests analyze
+.PHONY: all debug clean tests run unity_tests analyze clone_unity example
 
 all: mx
 
@@ -37,8 +36,9 @@ mx:
 mx_debug:
 	$(CC) $(CDEBUGFLAGS) -c mx.c -o $(OBJ_DIR)/mx.o
 
+# Target to compile any file passed as FILE variable
 example: mx_debug
-	$(CC) $(CDEBUGFLAGS) examples/Schwarz_inequality.c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
+	$(CC) $(CDEBUGFLAGS) ./examples/$(FILE).c $(OBJS) -o $(OBJ_DIR)/$(FILE) $(LDFLAGS)
 
 tests: clone_unity mx_debug
 	$(CC) $(CDEBUGFLAGS) tests.c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDFLAGS)
@@ -48,7 +48,7 @@ clone_unity:
 	if [ ! -d $(UNITY_DIR) ]; then git clone $(UNITY_REPO) $(UNITY_DIR); fi
 
 run: example
-	$(OBJ_DIR)/example
+	$(OBJ_DIR)/$(notdir $(FILE:.c=))
 
 clean:
 	rm -rf $(OBJ_DIR)/* $(ANALYSIS_OUTPUT_DIR)

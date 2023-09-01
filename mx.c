@@ -182,6 +182,21 @@ Matrix* mx_diagonal(size_t rows, dtype value){
     return m;
 }
 
+Matrix* mx_cross_product(const Matrix* A, const Matrix* B) {
+    // Ensure that both matrices are 3x1 vectors
+    if (A->rows != 3 || A->cols != 1 || B->rows != 3 || B->cols != 1) {
+        return NULL;  // Invalid vectors for cross product
+    }
+    
+    Matrix* result = MATRIX(3, 1);  // Replace with your function to create a 3x1 matrix
+
+    AT(result, 0, 0) = AT(A, 1, 0) * AT(B, 2, 0) - AT(A, 2, 0) * AT(B, 1, 0);
+    AT(result, 1, 0) = AT(A, 2, 0) * AT(B, 0, 0) - AT(A, 0, 0) * AT(B, 2, 0);
+    AT(result, 2, 0) = AT(A, 0, 0) * AT(B, 1, 0) - AT(A, 1, 0) * AT(B, 0, 0);
+
+    return result;
+}
+
 dtype mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2){
     if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols){
         errno = EINVAL;
@@ -240,9 +255,24 @@ Matrix* mx_perpendicular(const Matrix* matrix){
         return m_copy;
     }
     if(m_copy->rows == 3 || m_copy->cols == 3){
-        // CROSS PRODUCT
-        // PASS
-        return NULL;
+        // Base vectors
+        Matrix* x_base = MATRIX(1, 3);
+        AT(x_base, 0, 0) = 1; AT(x_base, 0, 1) = 0; AT(x_base, 0, 2) = 0;
+
+        Matrix* y_base = MATRIX(1, 3);
+        AT(y_base, 0, 0) = 0; AT(y_base, 0, 1) = 1; AT(y_base, 0, 2) = 0;
+
+        // If vec is not parallel to x_base, use x_base
+        Matrix* base_to_use = x_base;
+        if (fabs(AT(m_copy, 0, 0)) > 0.99) {  // Here 0.99 is an arbitrary threshold, adjust as needed
+            base_to_use = y_base;  // Use y_base if vec is nearly parallel to x_base
+        }
+
+        Matrix* perpendicular = mx_cross_product(m_copy, base_to_use);
+        mx_free(m_copy);
+        mx_free(y_base);
+        mx_free(x_base);
+        return perpendicular;
     }
     errno = EINVAL;
     perror("ERROR: infinite many perpendiculars for more then 3 dimensional vector");

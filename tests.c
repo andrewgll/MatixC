@@ -1490,23 +1490,22 @@ void problem125(void){
     TEST_ASSERT_EQUAL_DTYPE((dtype)(2.0/3), AT(w_unit_vector,0,2));
 
     Matrix* u_perpendicular = mx_perpendicular(u);
-    // Matrix* w_perpendicular = mx_perpendicular(w);
+    Matrix* w_perpendicular = mx_perpendicular(w);
     // should be 0
     Matrix* u_perpendicular_dot = DOT(u,u_perpendicular);
-    // Matrix* w_perpendicular_dot = DOT(w,w_perpendicular);
+    Matrix* w_perpendicular_dot = DOT(w,w_perpendicular);
 
     TEST_ASSERT_EQUAL(0,AT(u_perpendicular_dot,0,0));
-    // TEST_ASSERT_EQUAL(0,w_perpendicular_dot);
+    TEST_ASSERT_EQUAL(0,w_perpendicular_dot);
 
     mx_free(u_perpendicular);
-    // mx_free(w_perpendicular);
-    // mx_free(w_perpendicular_dot);
+    mx_free(w_perpendicular);
+    mx_free(w_perpendicular_dot);
     mx_free(u_perpendicular_dot);
     mx_free(u);
     mx_free(w);
     mx_free(u_unit_vector);
     mx_free(w_unit_vector);
-    TEST_IGNORE_MESSAGE("Ignore perpendicular for 3D vector because of missing cross-product");
 }
 
 int main(void) {

@@ -1508,6 +1508,159 @@ void problem125(void){
     mx_free(w_unit_vector);
 }
 
+void problem127(void){
+    Matrix* v = MATRIX(1,2);
+    AT(v,0,0) = 1;
+    AT(v,0,1) = sqrt(3);
+    
+    Matrix* w = MATRIX(1,3);
+    AT(w,0,0) = 1;
+    AT(w,0,1) = 0;
+
+    Matrix* v_w_dot = DOT(v,w);
+
+    dtype v_length = mx_length(v);
+    dtype w_length = mx_length(w);
+
+    dtype cosine = AT(v_w_dot,0,0)/(v_length*w_length);
+    
+    TEST_ASSERT_EQUAL(0.5, cosine);
+
+    mx_free(v);
+    mx_free(w);
+    mx_free(v_w_dot);
+}
+
+void problem126(void){
+    Matrix* u = MATRIX(1,2);
+    AT(u,0,0) = 3;
+    AT(u,0,1) = 1;
+
+    Matrix* perpendicular_1 = MATRIX_COPY(u);
+    // 1st
+    swap(&AT(perpendicular_1,0,0), &AT(perpendicular_1,0,1));
+    AT(perpendicular_1,0,0) *= -1;
+
+    // 2nd 
+    Matrix* perpendicular_2 = MATRIX_COPY(u);
+    swap(&AT(perpendicular_2,0,0), &AT(perpendicular_2,0,1));
+    AT(perpendicular_2,0,1) *= -1;
+    
+    Matrix* u_dot_perpendicular_1 = DOT(u, perpendicular_1);
+    TEST_ASSERT_EQUAL(0, AT(u_dot_perpendicular_1,0,0));
+    Matrix* u_dot_perpendicular_2 = DOT(u, perpendicular_2);
+    TEST_ASSERT_EQUAL(0, AT(u_dot_perpendicular_2,0,0));
+
+    mx_free(u);
+    mx_free(perpendicular_1);
+    mx_free(perpendicular_2);
+    mx_free(u_dot_perpendicular_1);
+    mx_free(u_dot_perpendicular_2);
+}
+
+void rules1219(void){
+    // v*w=w*v
+    Matrix* v = MATRIX_RAND(1,2);
+    Matrix* w = MATRIX_RAND(1,2);
+
+    Matrix* v_dot_w = DOT(v,w);
+    Matrix* w_dot_v = DOT(w,v);    
+    TEST_ASSERT_EQUAL(AT(v_dot_w,0,0), AT(w_dot_v,0,0));
+    mx_free(w_dot_v);
+
+    // u(w+v) = uw+uv
+    Matrix* u = MATRIX_RAND(1,2);
+    Matrix* v_plus_w = mx_add(v,w);
+    Matrix* u_dot_vpw = DOT(u,v_plus_w);
+    Matrix* v_dot_v_p_w = DOT(v, v_plus_w);
+    Matrix* u_dot_v = DOT(u,v);
+    Matrix* u_dot_w = DOT(u,w);
+    Matrix* udv_plus_udw = mx_add(u_dot_v, u_dot_w);
+    TEST_ASSERT_EQUAL(AT(u_dot_vpw,0,0), AT(udv_plus_udw,0,0));
+    mx_free(v_plus_w);
+    mx_free(u_dot_vpw);
+    mx_free(v_dot_v_p_w);
+    mx_free(u_dot_v);
+    mx_free(u_dot_w);
+    mx_free(udv_plus_udw);
+    mx_free(u);
+
+    // (cv)*w=c(v*w)
+    dtype c = 12.0;
+    Matrix* cv = SCALAR_DOT(v,c);
+    Matrix* cv_dot_w = DOT(cv, w);
+    Matrix* c_dot_cdw = SCALAR_DOT(v_dot_w, c);
+    TEST_ASSERT_EQUAL(AT(cv_dot_w,0,0), AT(c_dot_cdw,0,0));
+    mx_free(v_dot_w);
+    mx_free(cv);
+    mx_free(cv_dot_w);
+    mx_free(c_dot_cdw);
+
+    mx_free(v);
+    mx_free(w);
+    
+}
+
+// ||v+w||^2=vv+2vw+ww
+void rules12192(void){
+    Matrix* v = MATRIX_RAND(1,2);
+    Matrix* w = MATRIX_RAND(1,2);
+
+    Matrix* u = mx_add(v,w);
+
+    dtype length = mx_length(u);
+    dtype length_squared = length*length;
+    
+    Matrix* v_squared = DOT(v,v);
+    Matrix* w_squared = DOT(w,w);
+
+    Matrix* v_dot_w = DOT(v,w);
+
+    Matrix* v_dot_w_scaled = SCALAR_DOT(v_dot_w,2);
+
+    dtype v_squared_scalar = AT(v_squared,0,0);
+    dtype w_squared_scalar = AT(w_squared,0,0);
+    dtype vw_scalar = AT(v_dot_w_scaled,0,0);
+
+    dtype result = v_squared_scalar+w_squared_scalar+vw_scalar;
+
+    TEST_ASSERT_EQUAL(length_squared, result);
+
+    mx_free(v);
+    mx_free(w);
+    mx_free(u);
+    mx_free(v_squared);
+    mx_free(w_squared);
+    mx_free(v_dot_w);
+    mx_free(v_dot_w_scaled);
+}
+
+// ||u-w||^2 = ||u||^2 - 2||u||*||w||*cos(θ) + ||w||^2
+void rules1220(void){
+    Matrix* u = MATRIX_RAND(1,2);
+    Matrix* w = MATRIX_RAND(1,2);
+
+    Matrix* u_subtract_w= mx_subtract(u,w);
+
+    dtype u_s_w_length = mx_length(u_subtract_w);
+
+    dtype usw_length_squared = u_s_w_length;
+
+    dtype u_length = mx_length(u);
+
+    dtype w_length = mx_length(w);
+
+    dtype cos_u_w = mx_cosine_between_two_vectors(u,w);
+
+    dtype result = u_length*u_length - 2 * u_length * w_length * cos_u_w + w_length*w_length;
+
+    TEST_ASSERT_EQUAL(usw_length_squared, result);
+
+    mx_free(u);
+    mx_free(w);
+    mx_free(u_subtract_w); 
+}
+
 int main(void) {
     UNITY_BEGIN();
 
@@ -1660,5 +1813,11 @@ int main(void) {
     RUN_TEST(problem123);
     RUN_TEST(problem124);
     RUN_TEST(problem125);
+    RUN_TEST(problem126);
+    RUN_TEST(problem127);
+    RUN_TEST(rules1219);
+    RUN_TEST(rules12192);
+    RUN_TEST(rules1220);
+
     return UNITY_END();
 }

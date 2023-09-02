@@ -346,6 +346,11 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  */
 Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, dtype scalar, uint8_t flags);
 
+/**
+ * Returns a perpendicular vector to the given 2D or 3D matrix-vector.
+ *
+ * @param matrix: A pointer to a 2D or 3D Matrix in vector form (either row or column).
+ */
 Matrix* mx_perpendicular(const Matrix* matrix);
 
 /**

@@ -38,7 +38,7 @@ mx_debug:
 
 # Target to compile any file passed as FILE variable
 example: mx_debug
-	$(CC) $(CDEBUGFLAGS) ./examples/$(FILE).c $(OBJS) -o $(OBJ_DIR)/$(FILE) $(LDFLAGS)
+	$(CC) $(CDEBUGFLAGS) ./examples/$(FILE).c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
 
 tests: clone_unity mx_debug
 	$(CC) $(CDEBUGFLAGS) tests.c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDFLAGS)
@@ -48,7 +48,7 @@ clone_unity:
 	if [ ! -d $(UNITY_DIR) ]; then git clone $(UNITY_REPO) $(UNITY_DIR); fi
 
 run: example
-	$(OBJ_DIR)/$(notdir $(FILE:.c=))
+	$(OBJ_DIR)/example
 
 clean:
 	rm -rf $(OBJ_DIR)/* $(ANALYSIS_OUTPUT_DIR)

@@ -14,9 +14,9 @@ int main(void){
     AT(rand2,0,2) = 13;
     
     Matrix* dot = mx_dot(rand1,rand2);
-    dtype length1 = mx_length(rand1);
-    dtype length2 = mx_length(rand2);
-    dtype result = length1*length2;
+    float length1 = mx_length(rand1);
+    float length2 = mx_length(rand2);
+    float result = length1*length2;
     // dot should be less 
     printf("%f\n", AT(dot,0,0));
     // as result ratio of dot/length1*length2 must be <= 1,

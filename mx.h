@@ -1,5 +1,5 @@
-#ifndef mx
-#define mx
+#ifndef MX_H_
+#define MX_H_
 
 #include <stdio.h>
 #include <math.h>
@@ -9,24 +9,37 @@
 #include <errno.h>
 
 #ifdef USE_DOUBLE_PRECISION
-    typedef double dtype;
+    typedef double precision_type;
 #else
-    typedef float dtype;
+    typedef float precision_type;
 #endif
+
+#ifndef MX_ASSERT
+#include <assert.h>
+#define MX_ASSERT assert
+#endif // MX_ASSERT
+
+
+#ifndef MX_MALLOC
+#define MX_MALLOC malloc
+#endif // MX_MALLOC
+
 #define ARRAY_ROWS(arr) (sizeof(arr) / sizeof((arr)[0]))
-#define ARRAY_COLS(arr) (sizeof(arr[0]) / sizeof(dtype))
+#define ARRAY_COLS(arr) (sizeof(arr[0]) / sizeof(float))
 #define VALID_DIMENSIONS(rows, cols) ((rows) > 0 && (cols) > 0)
 #define VALID_MATRIX(matrix) \
     ((matrix) && (matrix)->container && (matrix)->container->data && VALID_DIMENSIONS((matrix)->rows, (matrix)->cols))
-
 #define CHECK_MATRIX_VALIDITY(matrix) matrix_is_valid(matrix)
-
 #define AT(matrix, i, j) \
     *(CHECK_FLAG((matrix)->flags, 0) ? \
-      &(dtype){(matrix)->default_value} : \
+      &(float){(matrix)->default_value} : \
       &(matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride])
+/**
+ * @brief Allocates a matrix with rows and cols size. 
+*/
 #define MATRIX(rows, cols) __mx_init(NULL,rows, cols, 0)
-#define MATRIX_FROM(array,rows,cols) __mx_init(array, rows,cols, 0)
+#define __MATRIX_FROM(array,rows,cols) __mx_init(array, rows,cols, 0)
+#define MATRIX_FROM_ARRAY(array) __MATRIX_FROM(array, ARRAY_ROWS(array), ARRAY_COLS(array))
 #define MATRIX_VIEW(matrix) safe_mx_view(matrix)
 #define MATRIX_ONES(rows,cols)  \
     ((rows) <= 0 || (cols) <= 0) ? \
@@ -53,7 +66,6 @@
  * @return A pointer to the identity matrix or NULL if dimensions are invalid or memory allocation failed.
  */
 #define MATRIX_IDENTITY(rows) mx_identity(rows)
-
 #define MATRIX_DIAGONAL(rows,value) mx_diagonal(rows,value)
 
 /**
@@ -66,7 +78,7 @@
  * @param cols The number of columns for the new matrix.
  * @return A pointer to the generated matrix with random values.
  */
-#define MATRIX_RAND(rows, cols) mx_rand(rows,cols)
+#define MATRIX_RAND(rows,cols) mx_rand(rows, cols)
 
 /**
  * @brief Generates a matrix initialized with a specific value.
@@ -91,17 +103,22 @@
 #define UNIT_VECTOR_FROM(matrix) mx_unit_vector_from(matrix)
 #define UNIT_VECTOR(size) mx_identity(size)
 
+#define SCALAR(matrix) AT(matrix,0,0)
+
 #define DOT(matrix1, matrix2) mx_dot(matrix1, matrix2, 0, 1U<<0)
 #define SCALAR_DOT(matrix, scalar_value) mx_dot(matrix, NULL, scalar_value, 1U<<1)
-
+#define ADD(matrix1, matrix2) mx_add(matrix1,matrix2, 0)
+#define ADD_TO_COPY(matrix1, matrix2) mx_add(matrix1,matrix2, 1U<<0)
 
 #define SET_FLAG(f, index)   ((f) |= (1U << (index)))
 #define CLEAR_FLAG(f, index) ((f) &= ~(1U << (index)))
 #define CHECK_FLAG(f, index) (((f) & (1U << (index))) != 0)
 
+#define PRINTM(matrix) mx_print(matrix, #matrix)
+
 typedef struct{
     uint16_t ref_count;
-    dtype *data;
+    precision_type *data;
 } __matrix_container;
 
 typedef struct{
@@ -110,13 +127,13 @@ typedef struct{
     uint16_t cols;
     uint16_t row_stride;
     uint16_t col_stride;
-    dtype default_value;
+    precision_type default_value;
     __matrix_container *container;  // Points to the original matrix
 } Matrix;
 
-dtype sigmoidf(dtype value);
+float sigmoidf(float value);
 
-void swap(dtype *a, dtype *b);
+void swap(float *a, float *b);
 /**
  * @brief Frees the memory of a matrix, taking shared data containers into account.
  *
@@ -148,7 +165,9 @@ Matrix* mx_copy(const Matrix* src);
  * @param matrix Pointer to the Matrix whose elements are to be updated.
  * @param func Pointer to the function that defines the transformation.
  */
-void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype));
+void mx_apply_function(Matrix* matrix, float (*func)(float));
+
+void mx_apply_sigmoid(Matrix* matrix);
 
 /**
  * @brief Initializes a new matrix container with a specified size.
@@ -160,7 +179,7 @@ void* mx_apply_function(Matrix* matrix, dtype (*func)(dtype));
  * @return A pointer to the newly allocated matrix container or NULL if the 
  *         allocation failed.
  */
-__matrix_container* __init_container(dtype* array,size_t size);
+__matrix_container* __init_container(float* array,size_t size);
 
 
 /**
@@ -174,7 +193,9 @@ __matrix_container* __init_container(dtype* array,size_t size);
  * @param init_value The initial value for each matrix element.
  * @return A pointer to the newly allocated matrix or NULL if allocation failed.
  */
-Matrix* __mx_init(dtype* array, size_t rows, size_t cols, dtype init_value);
+Matrix* __mx_init(float* array, size_t rows, size_t cols, float init_value);
+
+void mx_set_to_rand(Matrix* m, float min, float max);
 
 /**
  * @brief Creates a view of an existing matrix or initializes a lazy matrix.
@@ -189,7 +210,7 @@ Matrix* __mx_init(dtype* array, size_t rows, size_t cols, dtype init_value);
  * @param default_value The default value for matrix data.
  * @return A pointer to the matrix view or NULL if allocation failed.
  */
-Matrix* mx_view(const Matrix* matrix, size_t cols, size_t rows, dtype default_value);
+Matrix* mx_view(const Matrix* matrix, size_t cols, size_t rows, float default_value);
 
 static inline Matrix* safe_mx_view(const Matrix* matrix) {
     if (!matrix) {
@@ -218,7 +239,7 @@ static inline int8_t matrix_is_valid(const Matrix* matrix) {
  * @param matrix The matrix whose length (or norm) is to be computed.
  * @return The Frobenius norm of the matrix. Returns -1 if there's an error during computation.
  */
-dtype mx_length(const Matrix* matrix);
+float mx_length(const Matrix* matrix);
 
 /**
  * @brief Initializes and returns an identity matrix of the given dimensions.
@@ -232,7 +253,7 @@ dtype mx_length(const Matrix* matrix);
  */
 Matrix* mx_identity(size_t rows);
 
-Matrix* mx_diagonal(size_t rows, dtype value);
+Matrix* mx_diagonal(size_t rows, float value);
 
 /**
  * @brief Compute the cosine of the angle between two vectors.
@@ -244,7 +265,7 @@ Matrix* mx_diagonal(size_t rows, dtype value);
  * @param matrix2 Second vector.
  * @return The cosine of the angle between the two vectors.
  */
-dtype mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2);
+float mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2);
 
 
 /**
@@ -290,7 +311,7 @@ Matrix* mx_transpose(Matrix* matrix, uint8_t flags);
  * @param start_arrange The starting value for arranging the matrix elements.
  * @return Pointer to the newly created matrix, or NULL on failure.
  */
-Matrix* mx_arrange(size_t rows, size_t cols, dtype start_arrange);
+Matrix* mx_arrange(size_t rows, size_t cols, float start_arrange);
 
 /**
  * Generates a matrix with random values between 0 and 1.
@@ -309,7 +330,7 @@ Matrix* mx_rand(size_t rows, size_t cols);
  * @param scalar The value by which each element of the matrix is multiplied.
  * @return A new matrix with scaled values or NULL if memory allocation fails.
  */
-Matrix* mx_scale(Matrix* matrix, dtype scalar);
+Matrix* mx_scale(Matrix* matrix, float scalar);
 
 /**
  * Adds the elements of two matrices element-wise.
@@ -318,7 +339,7 @@ Matrix* mx_scale(Matrix* matrix, dtype scalar);
  * @param matrix2 The second matrix operand.
  * @return A new matrix with the summed values or NULL if dimensions mismatch or memory allocation fails.
  */
-Matrix* mx_add(const Matrix* matrix1, const Matrix* matrix2);
+Matrix* mx_add(Matrix* matrix1, Matrix* matrix2, uint8_t flags);
 
 /**
  * Subtracts the elements of the second matrix from the first one, element-wise.
@@ -344,7 +365,7 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  *         are not compatible and cannot be made compatible by transposing, 
  *         the function returns NULL.
  */
-Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, dtype scalar, uint8_t flags);
+Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, float scalar, uint8_t flags);
 
 /**
  * Returns a perpendicular vector to the given 2D or 3D matrix-vector.
@@ -373,7 +394,7 @@ Matrix* mx_perpendicular(const Matrix* matrix);
  *       checks for matrix validity. For invalid matrices, it sets
  *       the global 'errno' to EINVAL.
  */
-dtype mx_self_dot_product(Matrix* vector);
+float mx_self_dot_product(Matrix* vector);
 
 /**
  * @brief Extracts a submatrix (or slice) from a given source matrix based on specified start and end indices.
@@ -395,6 +416,6 @@ Matrix* mx_slice(const Matrix* src, size_t start_row, size_t end_row, size_t sta
 Matrix* mx_inverse(const Matrix* matrix);
 
 Matrix* open_dataset(const char* name);
-void* mx_print(const Matrix* matrix);
+void* mx_print(const Matrix* matrix, const char* name);
 
-#endif // mx
+#endif // MX_H_

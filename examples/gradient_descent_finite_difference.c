@@ -3,8 +3,7 @@
 
 float forward_xor(NN *xor){
     for(size_t i = 0; i < xor->count; ++i){
-        mx_free(xor->as[i+1]);
-        xor->as[i+1] = DOT(xor->as[i],xor->ws[i]);
+        DOT(xor->as[i+1], xor->as[i],xor->ws[i]);
         ADD(xor->as[i+1],xor->bs[i]);
         mx_apply_function(xor->as[i+1], sigmoidf);
     }
@@ -73,19 +72,19 @@ void learn(NN* m, NN* g, float rate){
 
 int main(void){
     srand(time(NULL));
-    size_t arch[] = {2,2,1};
-    NN* xor = NN(arch);
-    NN* gradient = NN(arch);
-    mx_nn_set_to_rand(xor,0,1);
+
+    size_t arch[] = {2,2,1};  // 2 input neuron 2 hidden 1 output
+    NN* xor = NN(arch);         // initilize NN 
+    NN* gradient = NN(arch);    
+    mx_nn_set_to_rand(xor,0,1); // randomize weights and biases
     mx_nn_set_to_rand(gradient,0,1);
-    PRINTNN(xor);
-    Matrix* xor_data = open_dataset("./datasets/XOR");
-    Matrix* ti = COL_SLICE(xor_data,0,1);
-    Matrix* to = COL_SLICE(xor_data,2,2);
+    Matrix* xor_data = open_dataset("./datasets/XOR"); // get data from dataset
+    Matrix* ti = COL_SLICE(xor_data,0,1);       // Slice x
+    Matrix* to = COL_SLICE(xor_data,2,2);       // Slice y
 
     float eps = 1e-1;
     float rate = 1;
-    for(size_t i = 0; i<1000; ++i){
+    for(size_t i = 0; i<20000; ++i){
         finite_difference(xor,gradient,eps, ti, to);
         learn(xor,gradient,rate);
         printf("%zu cost = %f\n",i, cost(xor,ti,to));
@@ -99,6 +98,7 @@ int main(void){
             printf("%zu ^ %zu = %f\n", i,j, round(y));
         }
     }
+    PRINTNN(xor);
     mx_nn_free(xor);
     mx_nn_free(gradient);
     mx_free(xor_data);

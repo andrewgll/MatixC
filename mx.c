@@ -290,12 +290,12 @@ float mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2){
     Matrix* product;
     if(matrix1->rows == 1 && matrix2->rows == 1){
         Matrix* mx2_transposed = TRANSPOSE_VIEW(matrix2);
-        product = DOT(matrix1, mx2_transposed);
+        product = SAFE_DOT(matrix1, mx2_transposed);
         mx_free(mx2_transposed);
     }
     else if( matrix1->cols == 1 && matrix2->cols ==1){
         Matrix* mx1_transposed = TRANSPOSE_VIEW(matrix1);
-        product = DOT(mx1_transposed, matrix2);
+        product = SAFE_DOT(mx1_transposed, matrix2);
         mx_free(mx1_transposed);
     }
     else{
@@ -575,6 +575,31 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2){
     }
 
     return result;
+}
+
+// fast dot algorithm
+void mx_fast_dot(const Matrix *src, const Matrix *dst1, const Matrix *dst2) {
+    for (size_t i = 0; i < dst1->rows; ++i) {
+        for (size_t j = 0; j < dst2->cols; ++j) {
+
+            // Loop unrolling for innermost loop
+            size_t k;
+            float sum = 0;
+            for (k = 0; k + 3 < dst1->cols; k += 4) {
+                sum += AT(dst1, i, k) * AT(dst2, k, j)
+                     + AT(dst1, i, k+1) * AT(dst2, k+1, j)
+                     + AT(dst1, i, k+2) * AT(dst2, k+2, j)
+                     + AT(dst1, i, k+3) * AT(dst2, k+3, j);
+            }
+
+            // Handling remaining columns if `dst1->cols` is not a multiple of 4
+            for (; k < dst1->cols; ++k) {
+                sum += AT(dst1, i, k) * AT(dst2, k, j);
+            }
+
+            AT(src, i, j) = sum;
+        }
+    }
 }
 
 Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, float scalar, uint8_t flags){

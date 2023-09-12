@@ -676,7 +676,7 @@ void test_dot_valid_matrices(void) {
     Matrix* matrix1 = mx_arrange(2, 3, 1);  // Produces [[1,2,3], [4,5,6]]
     Matrix* matrix2 = mx_arrange(3, 2, 1);  // Produces [[1,2], [3,4], [5,6]]
 
-    Matrix* result = DOT(matrix1, matrix2);
+    Matrix* result = SAFE_DOT(matrix1, matrix2);
 
     TEST_ASSERT_EQUAL_FLOAT(22, AT(result, 0, 0));
     TEST_ASSERT_EQUAL_FLOAT(28, AT(result, 0, 1));
@@ -692,7 +692,7 @@ void test_dot_valid_matrices(void) {
 //     Matrix* matrix1 = MATRIX(2, 2);
 //     Matrix* matrix2 = MATRIX(3, 2);
 
-//     Matrix* result = DOT(matrix1, matrix2);
+//     Matrix* result = SAFE_DOT(matrix1, matrix2);
 
 //     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
@@ -705,10 +705,10 @@ void test_dot_null_matrices(void) {
     Matrix* matrix1 = NULL;
     Matrix* matrix2 = MATRIX(2, 2);
 
-    Matrix* result = DOT(matrix1, matrix2);
+    Matrix* result = SAFE_DOT(matrix1, matrix2);
     TEST_ASSERT_NULL(result);
 
-    result = DOT(matrix2, matrix1);
+    result = SAFE_DOT(matrix2, matrix1);
     TEST_ASSERT_NULL(result);
 
     mx_free(matrix2);
@@ -719,7 +719,7 @@ void test_dot_matrix_and_its_transpose(void) {
     Matrix* matrix1 = mx_arrange(2, 3, 1);   // Produces [[1,2,3], [4,5,6]]
     Matrix* matrix2 = TRANSPOSE_VIEW(matrix1); // Should produce [[1,4], [2,5], [3,6]]
 
-    Matrix* result = DOT(matrix1, matrix2);
+    Matrix* result = SAFE_DOT(matrix1, matrix2);
 
     TEST_ASSERT_EQUAL_FLOAT(14, AT(result, 0, 0));
     TEST_ASSERT_EQUAL_FLOAT(32, AT(result, 0, 1));
@@ -1306,7 +1306,7 @@ void test_shwarz_inequality(void) {
     AT(rand2, 0, 1) = 2;
     AT(rand2, 0, 2) = 13;
     
-    Matrix* dot = DOT(rand1, rand2);
+    Matrix* dot = SAFE_DOT(rand1, rand2);
     float length1 = mx_length(rand1);
     float length2 = mx_length(rand2);
     float result = length1 * length2;
@@ -1334,15 +1334,15 @@ void problem121(void){
     AT(w,0,0) = 8;
     AT(w,0,1) = 6;
 
-    Matrix* uv_dot = DOT(u,v);
+    Matrix* uv_dot = SAFE_DOT(u,v);
     TEST_ASSERT_EQUAL(AT(uv_dot,0,0), 14);
-    Matrix* uw_dot = DOT(u,w);
+    Matrix* uw_dot = SAFE_DOT(u,w);
     TEST_ASSERT_EQUAL(AT(uw_dot,0,0), 0);
     Matrix* uw_add = MATRIX_COPY(u);
     uw_add = ADD(uw_add,w);
     TEST_ASSERT_EQUAL(AT(uw_add,0,0), 2);
     TEST_ASSERT_EQUAL(AT(uw_add,0,1), 14);
-    Matrix* u_dot_uw_add = DOT(u,uw_add);
+    Matrix* u_dot_uw_add = SAFE_DOT(u,uw_add);
     TEST_ASSERT_EQUAL(AT(u_dot_uw_add,0,0), 100);
     
     mx_free(u);
@@ -1375,8 +1375,8 @@ void problem122(void){
     TEST_ASSERT_EQUAL(length_v, 5);
     TEST_ASSERT_EQUAL(length_w, 10);
 
-    Matrix* u_dot_v = DOT(u,v);
-    Matrix* u_dot_w = DOT(u,w);
+    Matrix* u_dot_v = SAFE_DOT(u,v);
+    Matrix* u_dot_w = SAFE_DOT(u,w);
     
     //Shwarz inequality
 
@@ -1433,19 +1433,19 @@ void problem124(void){
     AT(w,0,1) = 6;
 
     Matrix* minus_u = SCALAR_DOT(u, -1);
-    Matrix* dot = DOT(u,minus_u);
+    Matrix* dot = SAFE_DOT(u,minus_u);
     TEST_ASSERT_EQUAL(-100, AT(dot,0,0));
     Matrix* v_plus_w = MATRIX_COPY(v);
     v_plus_w = ADD(v_plus_w,w);
     Matrix* v_minus_w = mx_subtract(v,w);
-    Matrix* v_pm_dot_w = DOT(v_plus_w,v_minus_w);
+    Matrix* v_pm_dot_w = SAFE_DOT(v_plus_w,v_minus_w);
     TEST_ASSERT_EQUAL(-75, AT(v_pm_dot_w,0,0));
 
     Matrix* w_scaled = SCALAR_DOT(w,2);
     Matrix* v_plus_scaled_w = MATRIX_COPY(v);
     v_plus_scaled_w = ADD(v_plus_scaled_w,w_scaled);
     Matrix* v_minus_scaled_w = mx_subtract(v,w_scaled);
-    Matrix* v_ps_ms_dot_w = DOT(v_plus_scaled_w,v_minus_scaled_w);
+    Matrix* v_ps_ms_dot_w = SAFE_DOT(v_plus_scaled_w,v_minus_scaled_w);
     TEST_ASSERT_EQUAL(-375, AT(v_ps_ms_dot_w,0,0));
 
     mx_free(u);
@@ -1485,8 +1485,8 @@ void problem125(void){
     Matrix* u_perpendicular = mx_perpendicular(u);
     Matrix* w_perpendicular = mx_perpendicular(w);
     // should be 0
-    Matrix* u_perpendicular_dot = DOT(u,u_perpendicular);
-    Matrix* w_perpendicular_dot = DOT(w,w_perpendicular);
+    Matrix* u_perpendicular_dot = SAFE_DOT(u,u_perpendicular);
+    Matrix* w_perpendicular_dot = SAFE_DOT(w,w_perpendicular);
 
     TEST_ASSERT_EQUAL(0,AT(u_perpendicular_dot,0,0));
     TEST_ASSERT_EQUAL(0,w_perpendicular_dot);
@@ -1510,7 +1510,7 @@ void problem127(void){
     AT(w,0,0) = 1;
     AT(w,0,1) = 0;
 
-    Matrix* v_w_dot = DOT(v,w);
+    Matrix* v_w_dot = SAFE_DOT(v,w);
 
     float v_length = mx_length(v);
     float w_length = mx_length(w);
@@ -1539,9 +1539,9 @@ void problem126(void){
     swap(&AT(perpendicular_2,0,0), &AT(perpendicular_2,0,1));
     AT(perpendicular_2,0,1) *= -1;
     
-    Matrix* u_dot_perpendicular_1 = DOT(u, perpendicular_1);
+    Matrix* u_dot_perpendicular_1 = SAFE_DOT(u, perpendicular_1);
     TEST_ASSERT_EQUAL_FLOAT(0, AT(u_dot_perpendicular_1,0,0));
-    Matrix* u_dot_perpendicular_2 = DOT(u, perpendicular_2);
+    Matrix* u_dot_perpendicular_2 = SAFE_DOT(u, perpendicular_2);
     TEST_ASSERT_EQUAL_FLOAT(0, AT(u_dot_perpendicular_2,0,0));
 
     mx_free(u);
@@ -1556,8 +1556,8 @@ void rules1219(void){
     Matrix* v = MATRIX_RAND(1,2);
     Matrix* w = MATRIX_RAND(1,2);
 
-    Matrix* v_dot_w = DOT(v,w);
-    Matrix* w_dot_v = DOT(w,v);    
+    Matrix* v_dot_w = SAFE_DOT(v,w);
+    Matrix* w_dot_v = SAFE_DOT(w,v);    
     TEST_ASSERT_EQUAL_FLOAT(AT(v_dot_w,0,0), AT(w_dot_v,0,0));
     mx_free(w_dot_v);
 
@@ -1565,10 +1565,10 @@ void rules1219(void){
     Matrix* u = MATRIX_RAND(1,2);
     Matrix* v_plus_w = MATRIX_COPY(v);
     v_plus_w = ADD(v_plus_w,w);
-    Matrix* u_dot_vpw = DOT(u,v_plus_w);
-    Matrix* v_dot_v_p_w = DOT(v, v_plus_w);
-    Matrix* u_dot_v = DOT(u,v);
-    Matrix* u_dot_w = DOT(u,w);
+    Matrix* u_dot_vpw = SAFE_DOT(u,v_plus_w);
+    Matrix* v_dot_v_p_w = SAFE_DOT(v, v_plus_w);
+    Matrix* u_dot_v = SAFE_DOT(u,v);
+    Matrix* u_dot_w = SAFE_DOT(u,w);
     Matrix* udv_plus_udw = MATRIX_COPY(u_dot_v);
     udv_plus_udw = ADD(udv_plus_udw, u_dot_w);
     TEST_ASSERT_EQUAL(AT(u_dot_vpw,0,0), AT(udv_plus_udw,0,0));
@@ -1583,7 +1583,7 @@ void rules1219(void){
     // (cv)*w=c(v*w)
     float c = 12.0;
     Matrix* cv = SCALAR_DOT(v,c);
-    Matrix* cv_dot_w = DOT(cv, w);
+    Matrix* cv_dot_w = SAFE_DOT(cv, w);
     Matrix* c_dot_cdw = SCALAR_DOT(v_dot_w, c);
     TEST_ASSERT_EQUAL_FLOAT(AT(cv_dot_w,0,0), AT(c_dot_cdw,0,0));
     mx_free(v_dot_w);
@@ -1607,10 +1607,10 @@ void rules12192(void){
     float length = mx_length(u);
     float length_squared = length*length;
     
-    Matrix* v_squared = DOT(v,v);
-    Matrix* w_squared = DOT(w,w);
+    Matrix* v_squared = SAFE_DOT(v,v);
+    Matrix* w_squared = SAFE_DOT(w,w);
 
-    Matrix* v_dot_w = DOT(v,w);
+    Matrix* v_dot_w = SAFE_DOT(v,w);
 
     Matrix* v_dot_w_scaled = SCALAR_DOT(v_dot_w,2);
 
@@ -1722,7 +1722,7 @@ void test_freeing_null_nn(void) {
 float forward_xor(NN *xor){
     for(size_t i = 0; i < xor->count; ++i){
         mx_free(xor->as[i+1]);
-        xor->as[i+1] = DOT(xor->as[i],xor->ws[i]);
+        DOT(xor->as[i+1],xor->as[i],xor->ws[i]);
         ADD(xor->as[i+1],xor->bs[i]);
         mx_apply_function(xor->as[i+1], sigmoidf);
     }

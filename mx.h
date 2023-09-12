@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
+#include <pthread.h>
 
 #ifdef USE_DOUBLE_PRECISION
     typedef double precision_type;
@@ -21,6 +22,10 @@
 
 #ifndef MX_FREE
 #define MX_FREE free
+#endif
+
+#ifndef THREAD_COUNT
+#define THREAD_COUNT 8 
 #endif
 
 #ifndef MX_MALLOC
@@ -118,7 +123,26 @@
 
 #define SCALAR(matrix) AT(matrix,0,0)
 
-#define DOT(matrix1, matrix2) mx_dot(matrix1, matrix2, 0, 1U<<0)
+#define SAFE_DOT(matrix1, matrix2) mx_dot(matrix1, matrix2, 0, 1U<<0)
+
+/**
+ * @brief Computes the dot product of two matrices.
+ * 
+ * This function is designed for performance optimization.
+ * 
+ * Important Note:
+ * The caller MUST ensure that the matrices have compatible dimensions for multiplication 
+ * The function does not perform any boundary checks, so using it without the correct preconditions 
+ * can lead to undefined behavior or potential memory corruption.
+ * 
+ * If you need safe dot_product without optimizations use SAFE_DOT
+ * 
+ * @param src       A pointer to the Matrix where the result is stored.
+ * @param dst1      A pointer to the first Matrix operand.
+ * @param dst2      A pointer to the second Matrix operand.
+ * 
+ */
+#define DOT(src, dst1, dst2) mx_fast_dot(src, dst1, dst2)
 #define SCALAR_DOT(matrix, scalar_value) mx_dot(matrix, NULL, scalar_value, 1U<<1)
 #define ADD(matrix1, matrix2) mx_add(matrix1,matrix2, 0)
 #define ADD_TO_COPY(matrix1, matrix2) mx_add(matrix1,matrix2, 1U<<0)
@@ -145,6 +169,14 @@ typedef struct{
     precision_type default_value;
     __matrix_container *container;  // Points to the original matrix
 } Matrix;
+
+typedef struct {
+    const Matrix *dst1;
+    const Matrix *dst2;
+    Matrix *src;
+    size_t start_row;
+    size_t end_row;
+} ThreadData;
 
 /**
  * Neural Network (NN) Structure
@@ -411,6 +443,25 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  */
 Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, float scalar, uint8_t flags);
 
+/**
+ * @brief Computes the dot product of two matrices.
+ * 
+ * This function is designed for performance optimization by employing loop unrolling techniques.
+ * 
+ * Important Note:
+ * The caller MUST ensure that the matrices have compatible dimensions for multiplication 
+ * (i.e., dst1's number of columns must equal dst2's number of rows). 
+ * Moreover, the src matrix must be of the appropriate size to store the result 
+ * (i.e., dst1's number of rows by dst2's number of columns).
+ * The function does not perform any boundary checks, so using it without the correct preconditions 
+ * can lead to undefined behavior or potential memory corruption.
+ * 
+ * @param src       A pointer to the Matrix where the result is stored.
+ * @param dst1      A pointer to the first Matrix operand.
+ * @param dst2      A pointer to the second Matrix operand.
+ * 
+ */
+void mx_fast_dot(const Matrix *src, const Matrix *dst1, const Matrix *dst2);
 /**
  * Returns a perpendicular vector to the given 2D or 3D matrix-vector.
  *

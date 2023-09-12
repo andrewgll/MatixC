@@ -3,6 +3,7 @@
         "array": "c",
         "string_view": "c",
         "initializer_list": "c",
-        "errno.h": "c"
+        "errno.h": "c",
+        "mx.h": "c"
     }
 }

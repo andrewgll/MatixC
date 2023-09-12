@@ -1657,6 +1657,25 @@ void rules1220(void){
     mx_free(u_subtract_w); 
 }
 
+void test_nn_allocation_and_freeing(void) {
+    size_t arch[] = {3, 2, 2}; 
+    NN* test_nn = NN(arch);
+    
+    // Check if allocation was successful
+    TEST_ASSERT_NOT_NULL_MESSAGE(test_nn, "NN Allocation Failed");
+    
+    // Check count
+    TEST_ASSERT_EQUAL_INT_MESSAGE(2, test_nn->count, "NN Count Mismatch");
+    
+    // Check if inner arrays are allocated
+    TEST_ASSERT_NOT_NULL_MESSAGE(test_nn->ws, "Weight Matrices Allocation Failed");
+    TEST_ASSERT_NOT_NULL_MESSAGE(test_nn->bs, "Bias Vectors Allocation Failed");
+    TEST_ASSERT_NOT_NULL_MESSAGE(test_nn->as, "Activation Vectors Allocation Failed");
+    
+    // Free and test if it works without issues
+    mx_nn_free(test_nn);
+}
+
 void problem130(void){
     float array_data[] = {1, 1, 1}; 
     Matrix* s = MATRIX_FROM_ARRAY(array_data);
@@ -1674,6 +1693,133 @@ void problem130(void){
     mx_free(s2);
     mx_free(s3);
     mx_free(x);
+}
+
+void test_nn_allocation_with_valid_arch(void) {
+    size_t arch[] = {3, 2, 2}; 
+    NN* test_nn = NN(arch);
+
+    TEST_ASSERT_NOT_NULL_MESSAGE(test_nn, "NN Allocation Failed for Valid Architecture");
+    mx_nn_free(test_nn);
+}
+
+void test_freeing_valid_nn(void) {
+    size_t arch[] = {3, 2, 2}; 
+    NN* test_nn = NN(arch);
+
+    // Assuming this function doesn't crash, the test will pass.
+    mx_nn_free(test_nn);
+}
+
+void test_freeing_null_nn(void) {
+    NN* test_nn = NULL;
+    
+    // Shouldn't crash.
+    mx_nn_free(test_nn);
+}
+
+
+float forward_xor(NN *xor){
+    for(size_t i = 0; i < xor->count; ++i){
+        mx_free(xor->as[i+1]);
+        xor->as[i+1] = DOT(xor->as[i],xor->ws[i]);
+        ADD(xor->as[i+1],xor->bs[i]);
+        mx_apply_function(xor->as[i+1], sigmoidf);
+    }
+    return SCALAR(xor->as[xor->count]);
+}
+
+float cost(NN* m, Matrix* ti, Matrix* to){
+    assert(ti->rows==to->rows);
+    assert(to->cols == m->as[m->count]->cols); 
+    size_t n = ti->rows;
+    float c = 0;
+    for(size_t i = 0; i< n; ++i){
+        Matrix* x = ROW_SLICE(ti,i,i);
+        Matrix* y = ROW_SLICE(to,i,i);
+        mx_free(m->as[0]);
+        m->as[0] = x;
+        float result = forward_xor(m);
+        size_t q = to->cols;
+        for(size_t j = 0; j < q; ++j){
+            float d = result - AT(y,0,j);
+            c += d*d;
+        }
+        mx_free(y);
+    }
+    return c/n;
+}
+
+void finite_difference(NN* m, NN* g,float eps, Matrix* ti, Matrix* to){
+    float saved;
+    float c = cost(m, ti,to);
+
+    for(size_t d = 0; d < m->count; ++d){
+        for(size_t i=0; i< m->ws[d]->rows;++i){
+            for(size_t j = 0; j < m->ws[d]->cols; ++j){
+                saved = AT(m->ws[d],i,j);
+                AT(m->ws[d],i,j) += eps;
+                AT(g->ws[d],i,j) = (cost(m, ti, to)-c)/eps;
+                AT(m->ws[d],i,j) = saved;            
+            }
+        }
+        for(size_t i=0; i< m->bs[d]->rows;++i){
+            for(size_t j = 0; j < m->bs[d]->cols; ++j){
+                saved = AT(m->bs[d],i,j);
+                AT(m->bs[d],i,j) += eps;
+                AT(g->bs[d],i,j) = (cost(m, ti, to)-c)/eps;
+                AT(m->bs[d],i,j) = saved;            
+            }
+        }
+    }
+}
+
+void learn(NN* m, NN* g, float rate){
+    for(size_t d = 0; d < m->count; ++d){
+        for(size_t i=0; i< m->ws[d]->rows;++i){
+            for(size_t j = 0; j < m->ws[d]->cols; ++j){
+                AT(m->ws[d],i,j) -= rate*AT(g->ws[d],i,j);
+            }
+        }
+        for(size_t i=0; i< m->bs[d]->rows;++i){
+            for(size_t j = 0; j < m->bs[d]->cols; ++j){
+                AT(m->bs[d],i,j) -= rate*AT(g->bs[d],i,j);
+            }
+        } 
+    }
+}
+
+// Gradient descent with finite difference. This function should not have memory leaks
+void test_gradient_descent(void){
+    size_t arch[] = {2,2,1};
+    NN* xor = NN(arch);
+    NN* gradient = NN(arch);
+    mx_nn_set_to_rand(xor,0,1);
+    mx_nn_set_to_rand(gradient,0,1);
+    Matrix* xor_data = open_dataset("./datasets/XOR");
+    Matrix* ti = COL_SLICE(xor_data,0,1);
+    Matrix* to = COL_SLICE(xor_data,2,2);
+
+    float eps = 1e-1;
+    float rate = 1;
+    for(size_t i = 0; i<1500; ++i){
+        finite_difference(xor,gradient,eps, ti, to);
+        learn(xor,gradient,rate);
+    }
+    for(size_t i = 0; i < 2; ++i){
+        for(size_t j = 0; j < 2; ++j){
+            AT(xor->as[0],0,0) = i;
+            AT(xor->as[0],0,1) = j;
+            forward_xor(xor);
+            float y = SCALAR(xor->as[xor->count]);
+            TEST_ASSERT_EQUAL_FLOAT(i^j, round(y));
+        }
+    }
+    mx_nn_free(xor);
+    mx_nn_free(gradient);
+    mx_free(xor_data);
+    mx_free(ti);
+    mx_free(to);
 }
 
 int main(void) {
@@ -1838,6 +1984,14 @@ int main(void) {
     // Problem set 1.3 
     RUN_TEST(problem130);
 
+    // NN layers
+    RUN_TEST(test_nn_allocation_and_freeing);
+    RUN_TEST(test_nn_allocation_with_valid_arch);
+    RUN_TEST(test_freeing_valid_nn);
+    RUN_TEST(test_freeing_null_nn);
+
+    // Gradient descent
+    RUN_TEST(test_gradient_descent);
 
     return UNITY_END();
 }

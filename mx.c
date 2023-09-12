@@ -20,14 +20,14 @@ void mx_free(Matrix *matrix) {
             matrix->container->ref_count--;
             if (matrix->container->ref_count == 0) {
                 if (matrix->container->data) {
-                    free(matrix->container->data);
+                    MX_FREE(matrix->container->data);
                     matrix->container->data = NULL;
                 }
-                free(matrix->container);
+                MX_FREE(matrix->container);
                 matrix->container = NULL;
             }
         }
-        free(matrix);  
+        MX_FREE(matrix);  
     }
 }
 
@@ -88,7 +88,7 @@ __matrix_container* __init_container(float* array, size_t size) {
     container->data = calloc(size, sizeof(*container->data));
     
     if (!container->data) {
-        free(container);
+        MX_FREE(container);
         return NULL;
     }
 
@@ -99,6 +99,44 @@ __matrix_container* __init_container(float* array, size_t size) {
 
     return container;
 }
+
+NN* __mx_nn_alloc(size_t* arch, size_t arch_count){
+    
+    // Validate the input parameters
+    if (arch == NULL || arch_count == 0) {
+        // Some error handling mechanism should be in place, like returning a null NN or aborting.
+        // For simplicity, I'm using a dummy assert here.
+        MX_ASSERT(0); 
+    }
+    
+    NN* nn = (NN*)malloc(sizeof(NN));
+    nn->count = arch_count - 1;
+
+    // Allocate memory for weight matrices
+    nn->ws = MX_MALLOC(sizeof(*nn->ws) * nn->count);
+    MX_ASSERT(nn->ws != NULL);
+
+    // Allocate memory for bias vectors
+    nn->bs = MX_MALLOC(sizeof(*nn->bs) * nn->count);
+    MX_ASSERT(nn->bs != NULL);
+
+    // Allocate memory for activation values
+    nn->as = MX_MALLOC(sizeof(*nn->as) * arch_count);
+    MX_ASSERT(nn->as != NULL);
+
+    // Initialize the first layer of activation values
+    nn->as[0] = MATRIX(1, arch[0]);
+
+    // Initialize weights, biases, and activations for subsequent layers
+    for(size_t i = 1; i < arch_count; ++i){
+        nn->ws[i-1] = MATRIX(nn->as[i-1]->cols, arch[i]);
+        nn->bs[i-1] = MATRIX(1, arch[i]);
+        nn->as[i] = MATRIX(1, arch[i]);
+    }
+
+    return nn;
+}
+
 
 Matrix* mx_copy(const Matrix* src){
     if(CHECK_MATRIX_VALIDITY(src)==-1){
@@ -136,7 +174,7 @@ Matrix* __mx_init(float* array, size_t rows, size_t cols, float init_value) {
         mat->container = __init_container(NULL, cols * rows);
     }
     if (!mat->container) {
-        free(mat);
+        MX_FREE(mat);
         return NULL;
     }
 
@@ -173,6 +211,14 @@ void mx_set_to_rand(Matrix* m, float min, float max)
         }
     }
 }
+
+void mx_nn_set_to_rand(NN* nn, float min, float max){
+    for(size_t i = 0; i < nn->count; ++i){
+        mx_set_to_rand(nn->ws[i], min, max);
+        mx_set_to_rand(nn->bs[i], min, max);
+    }
+}
+
 Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, float default_value){
     Matrix* view = (Matrix*)MX_MALLOC(sizeof(Matrix));
     if (!view) {
@@ -184,7 +230,7 @@ Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, float default_va
         view->col_stride = matrix->col_stride;
         view->row_stride = matrix->row_stride;
         view->cols = rows;    // corrected to use passed rows and cols
-        view->rows = cols;    // corrected to use passed rows and cols
+        view->rows = cols;    // corrected to use passedf rows and cols
         view->container = matrix->container;
         view->default_value = default_value;
         view->flags = 0;
@@ -339,7 +385,7 @@ Matrix* mx_unit_vector_from(const Matrix* matrix) {
     if (fabs(length) < 1e-6) {
         errno = EINVAL;
         perror("Error in 'mx_unit_vector_from'. Vector length is too close to zero");
-        mx_free(result);  // Free the allocated matrix before returning
+        mx_free(result);  // MX_FREE the allocated matrix before returning
         return NULL;
     }
 
@@ -463,6 +509,7 @@ Matrix* mx_rand(size_t rows, size_t cols) {
 
     return matrix;
 }
+
 
 Matrix* mx_add(Matrix* matrix1, Matrix* matrix2, uint8_t flags){ 
     if(CHECK_MATRIX_VALIDITY(matrix1) == -1|| CHECK_MATRIX_VALIDITY(matrix2)==-1){
@@ -707,13 +754,13 @@ Matrix* open_dataset(const char* name){
     return result;
 }
 
-void* mx_print(const Matrix* matrix, const char* name) {
+void* mx_print(const Matrix* matrix, const char* name, size_t padding) {
     if(CHECK_MATRIX_VALIDITY(matrix)==-1){
         return NULL;
     }
-    printf("%s=([\n",name);
+    printf("%*s%s=([\n",(int)padding, "", name);
     for (size_t i = 0; i < matrix->rows; ++i) {
-        printf("[");
+        printf("%*s[", (int)padding*2, "");
         for (size_t j = 0; j < matrix->cols; ++j) {
             float value = AT(matrix,i,j);
             printf("%f", value);
@@ -725,9 +772,38 @@ void* mx_print(const Matrix* matrix, const char* name) {
         if (i < (size_t)(matrix->rows - 1)) {
             printf(",");
         }
-
         printf("\n");
     }
-    printf("]);\n");
+    printf("%*s]);\n",(int)padding,"");
     return 0;
+}
+
+void mx_nn_print(const NN* nn, const char* name){
+    printf("%s=([\n",name);
+    for(size_t i = 0; i< nn->count; ++i){
+        Matrix* ws = nn->ws[i];
+        Matrix* bs = nn->bs[i];
+        PRINTM_PADDING(ws,2);
+        PRINTM_PADDING(bs,2);
+    }
+    printf("]);\n");
+}
+
+void mx_nn_free(NN* nn)
+{
+    if(!nn){
+        return;
+    }
+
+    mx_free(nn->as[0]);
+
+    for(size_t i = 1; i < nn->count+1; ++i){
+        mx_free(nn->ws[i-1]);
+        mx_free(nn->bs[i-1]);
+        mx_free(nn->as[i]);
+    }
+    MX_FREE(nn->ws);
+    MX_FREE(nn->as);
+    MX_FREE(nn->bs);
+    MX_FREE(nn);
 }

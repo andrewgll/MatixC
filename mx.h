@@ -19,6 +19,9 @@
 #define MX_ASSERT assert
 #endif // MX_ASSERT
 
+#ifndef MX_FREE
+#define MX_FREE free
+#endif
 
 #ifndef MX_MALLOC
 #define MX_MALLOC malloc
@@ -93,6 +96,16 @@
  */
 #define MATRIX_WITH(rows, cols, init_value) __mx_init(NULL, rows, cols, init_value)
 
+/**
+ * Allocates memory for a neural network (NN) with the given architecture.
+ *
+ * @param arch: An array representing the architecture of the NN. 
+ *              Each element specifies the number of neurons in each layer.
+ * @param arch_count: The number of layers in the NN.
+ * @return: An initialized NN structure.
+ */
+#define NN(arch) __mx_nn_alloc(arch, ARRAY_ROWS(arch))
+
 #define TRANSPOSE(matrix) mx_transpose(matrix, 1U<<0)
 #define TRANSPOSE_VIEW(matrix) mx_transpose(matrix, 1U<<1)
 #define TRANSPOSE_COPY(matrix) mx_transpose(matrix, 1U<<2)
@@ -114,7 +127,9 @@
 #define CLEAR_FLAG(f, index) ((f) &= ~(1U << (index)))
 #define CHECK_FLAG(f, index) (((f) & (1U << (index))) != 0)
 
-#define PRINTM(matrix) mx_print(matrix, #matrix)
+#define PRINTM(matrix) mx_print(matrix, #matrix, 0)
+#define PRINTM_PADDING(matrix, padding) mx_print(matrix, #matrix, padding)
+#define PRINTNN(nn) mx_nn_print(nn, #nn)
 
 typedef struct{
     uint16_t ref_count;
@@ -130,6 +145,31 @@ typedef struct{
     precision_type default_value;
     __matrix_container *container;  // Points to the original matrix
 } Matrix;
+
+/**
+ * Neural Network (NN) Structure
+ * Represents a feed-forward neural network.
+ */
+typedef struct {
+
+    size_t count;       /**< Total number of layers in the neural network minus one.
+                             This represents the number of weight matrices, bias vectors, 
+                             and activation matrices excluding the input layer. */
+
+    Matrix** ws;        /**< Pointer to an array of weight matrices.
+                             Each matrix in this array represents the weights between
+                             two consecutive layers in the neural network. */
+
+    Matrix** bs;        /**< Pointer to an array of bias vectors.
+                             Each matrix in this array (typically 1 x N dimension) 
+                             represents the biases for each neuron in a layer. */
+
+    Matrix** as;        /**< Pointer to an array of activation matrices.
+                             Each matrix in this array holds the activation values 
+                             for each neuron in a layer, after applying the activation function. */
+
+} NN;
+
 
 float sigmoidf(float value);
 
@@ -195,7 +235,11 @@ __matrix_container* __init_container(float* array,size_t size);
  */
 Matrix* __mx_init(float* array, size_t rows, size_t cols, float init_value);
 
+NN* __mx_nn_alloc(size_t* arch, size_t arch_count);
+
 void mx_set_to_rand(Matrix* m, float min, float max);
+
+void mx_nn_set_to_rand(NN* nn, float min, float max);
 
 /**
  * @brief Creates a view of an existing matrix or initializes a lazy matrix.
@@ -416,6 +460,8 @@ Matrix* mx_slice(const Matrix* src, size_t start_row, size_t end_row, size_t sta
 Matrix* mx_inverse(const Matrix* matrix);
 
 Matrix* open_dataset(const char* name);
-void* mx_print(const Matrix* matrix, const char* name);
+void mx_nn_free(NN* nn);
+void* mx_print(const Matrix* matrix, const char* name, size_t padding);
+void mx_nn_print(const NN* nn, const char* name);
 
 #endif // MX_H_

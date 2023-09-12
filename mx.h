@@ -135,7 +135,7 @@
  * The function does not perform any boundary checks, so using it without the correct preconditions 
  * can lead to undefined behavior or potential memory corruption.
  * 
- * If you need safe dot_product without optimizations use SAFE_DOT
+ * If you need safe dot_product without optimizations use SAFE_DOT instead.
  * 
  * @param src       A pointer to the Matrix where the result is stored.
  * @param dst1      A pointer to the first Matrix operand.

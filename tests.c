@@ -1721,8 +1721,7 @@ void test_freeing_null_nn(void) {
 
 float forward_xor(NN *xor){
     for(size_t i = 0; i < xor->count; ++i){
-        mx_free(xor->as[i+1]);
-        DOT(xor->as[i+1],xor->as[i],xor->ws[i]);
+        DOT(xor->as[i+1], xor->as[i],xor->ws[i]);
         ADD(xor->as[i+1],xor->bs[i]);
         mx_apply_function(xor->as[i+1], sigmoidf);
     }

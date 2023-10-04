@@ -1,11 +1,16 @@
 
 #include "mx.h"
 
-#define APPLY_TO_BOTH_INPLACE(matrix1, matrix2, function) __mx_apply_function_to_both(matrix1, matrix2, function, 0)
-#define APPLY_TO_BOTH_COPY(matrix1, matrix2, function) __mx_apply_function_to_both(matrix1, matrix2, function, 1)
-
 float sigmoidf(float value){
     return 1.0/(1+expf(-value));
+}
+
+float __add_elements(float a, float b) {
+    return a + b;
+}
+
+float __subtract_elements(float a, float b) {
+    return a - b;
 }
 
 void swap(float *a, float *b) {
@@ -31,10 +36,6 @@ void mx_free(Matrix *matrix) {
     }
 }
 
-float __add_elements(float a, float b) {
-    return a + b;
-}
-
 void mx_apply_sigmoid(Matrix* matrix){
     mx_apply_function(matrix, sigmoidf);
 }
@@ -52,7 +53,24 @@ void mx_apply_function(Matrix* matrix, float (*func)(float)) {
     }
 }
 
-void* __mx_apply_function_to_both(Matrix* matrix1,Matrix* matrix2, float (*func)(float, float), uint8_t flags) {
+uint8_t mx_apply_function_to_both(Matrix* matrix1,Matrix* matrix2, float (*func)(float, float)) {
+    if(CHECK_MATRIX_VALIDITY(matrix1) == -1){
+        return -1;
+    }
+    if(matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols) {
+        printf("Error: matrices have different dimensions.\n");
+        return -1;
+    }
+    Matrix* result = matrix1;
+    for(size_t i = 0; i < matrix1->rows; ++i) {
+        for(size_t j = 0; j < matrix1->cols; ++j) {
+            AT(result, i, j) = func(AT(matrix1, i, j), AT(matrix2, i, j));
+        }
+    }
+    return 0;
+}
+
+Matrix* mx_apply_function_to_both_new(Matrix* matrix1,Matrix* matrix2, float (*func)(float, float)) {
     if(CHECK_MATRIX_VALIDITY(matrix1) == -1){
         return NULL;
     }
@@ -60,16 +78,13 @@ void* __mx_apply_function_to_both(Matrix* matrix1,Matrix* matrix2, float (*func)
         printf("Error: matrices have different dimensions.\n");
         return NULL;
     }
-    Matrix* result = matrix1;
-    if(CHECK_FLAG(flags,0) == 1){
-        result = MATRIX(matrix1->rows, matrix1->cols);
-    }
+    Matrix* result = MATRIX(matrix1->rows, matrix1->cols);
     for(size_t i = 0; i < matrix1->rows; ++i) {
         for(size_t j = 0; j < matrix1->cols; ++j) {
             AT(result, i, j) = func(AT(matrix1, i, j), AT(matrix2, i, j));
         }
     }
-    return NULL;
+    return result;
 }
 
 __matrix_container* __init_container(float* array, size_t size) {
@@ -83,6 +98,8 @@ __matrix_container* __init_container(float* array, size_t size) {
     }
 
     container->ref_count = 1;
+
+    container->size = size;
 
     // Always allocate memory on the heap
     container->data = calloc(size, sizeof(*container->data));
@@ -109,7 +126,7 @@ NN* __mx_nn_alloc(size_t* arch, size_t arch_count){
         MX_ASSERT(0); 
     }
     
-    NN* nn = (NN*)malloc(sizeof(NN));
+    NN* nn = (NN*)MX_MALLOC(sizeof(NN));
     nn->count = arch_count - 1;
 
     // Allocate memory for weight matrices
@@ -248,11 +265,11 @@ Matrix* mx_view(const Matrix* matrix, size_t rows, size_t cols, float default_va
     return view;   
 }
 // TODO this can be replaced with macros
-Matrix* mx_identity(size_t rows){
-    return mx_diagonal(rows, 1);
+Matrix* mx_identity_new(size_t rows){
+    return mx_diagonal_new(rows, 1);
 }
 
-Matrix* mx_diagonal(size_t rows, float value){
+Matrix* mx_diagonal_new(size_t rows, float value){
     if(!VALID_DIMENSIONS(rows, rows)){
         return NULL;
     }
@@ -265,7 +282,7 @@ Matrix* mx_diagonal(size_t rows, float value){
     return m;
 }
 
-Matrix* mx_cross_product(const Matrix* A, const Matrix* B) {
+Matrix* mx_cross_product_alloc(const Matrix* A, const Matrix* B) {
     // Ensure that both matrices are 3x1 vectors
     if (A->rows != 3 || A->cols != 1 || B->rows != 3 || B->cols != 1) {
         return NULL;  // Invalid vectors for cross product
@@ -318,7 +335,7 @@ float mx_cosine_between_two_vectors(Matrix* matrix1, Matrix* matrix2){
     return result;
 }
 
-Matrix* mx_perpendicular(const Matrix* matrix){
+Matrix* mx_perpendicular_new(const Matrix* matrix){
     // Check if matrix is valid
     if (CHECK_MATRIX_VALIDITY(matrix) == -1) {
         errno = EINVAL;
@@ -351,7 +368,7 @@ Matrix* mx_perpendicular(const Matrix* matrix){
             base_to_use = y_base;  // Use y_base if vec is nearly parallel to x_base
         }
 
-        Matrix* perpendicular = mx_cross_product(m_copy, base_to_use);
+        Matrix* perpendicular = mx_cross_product_alloc(m_copy, base_to_use);
         mx_free(m_copy);
         mx_free(y_base);
         mx_free(x_base);
@@ -455,7 +472,7 @@ Matrix* mx_transpose(Matrix* matrix, uint8_t flags){
     return mx_transposed;
 }
 
-Matrix* mx_arrange(size_t rows, size_t cols, float start_arrange) {
+Matrix* mx_arrange_alloc(size_t rows, size_t cols, float start_arrange) {
     Matrix* matrix = MATRIX(rows, cols);
     if (!matrix) {
         printf("Failed to allocate memory for the matrix.\n");
@@ -493,7 +510,7 @@ Matrix* mx_scale(Matrix* matrix, float scalar) {
     return result;
 }
 
-Matrix* mx_rand(size_t rows, size_t cols) {
+Matrix* mx_rand_alloc(size_t rows, size_t cols) {
     Matrix* matrix = MATRIX(rows, cols);
     if (!matrix) {
         printf("Failed to allocate memory for the matrix.\n");
@@ -508,31 +525,6 @@ Matrix* mx_rand(size_t rows, size_t cols) {
     }
 
     return matrix;
-}
-
-
-Matrix* mx_add(Matrix* matrix1, Matrix* matrix2, uint8_t flags){ 
-    if(CHECK_MATRIX_VALIDITY(matrix1) == -1|| CHECK_MATRIX_VALIDITY(matrix2)==-1){
-        return NULL;
-    }
-
-    if (matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols) {
-        printf("ERROR when 'mx_add': Sizes of two matrices should be equal.\n");
-        return NULL;
-    }
-    Matrix* result = matrix1;
-    if(CHECK_FLAG(flags,0) == 1){
-        result = MATRIX(matrix1->rows, matrix1->cols);
-    }
-    
-    if (!result) {
-        printf("Failed to allocate memory for the resultant matrix.\n");
-        return NULL;
-    }
-
-    APPLY_TO_BOTH_INPLACE(result, matrix2, __add_elements);
-
-    return result;
 }
 
 float mx_length(const Matrix* matrix) {
@@ -550,31 +542,6 @@ float mx_length(const Matrix* matrix) {
         }
     }
     return sqrt(value);
-}
-
-Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2){
-    if(CHECK_MATRIX_VALIDITY(matrix1)==-1|| CHECK_MATRIX_VALIDITY(matrix2)==-1){
-        return NULL;
-    }
-
-    if (matrix1->rows != matrix2->rows || matrix1->cols != matrix2->cols) {
-        printf("ERROR when 'mx_subtract': Sizes of two matrices should be equal.\n");
-        return NULL;
-    }
-
-    Matrix* result = MATRIX(matrix1->rows, matrix1->cols);
-    if (!result) {
-        printf("Failed to allocate memory for the resultant matrix.\n");
-        return NULL;
-    }
-
-    for (size_t i = 0; i < matrix1->rows; ++i) {
-        for (size_t j = 0; j < matrix1->cols; ++j) {
-            AT(result, i, j) = AT(matrix1, i, j) - AT(matrix2, i, j);
-        }
-    }
-
-    return result;
 }
 
 // fast dot algorithm
@@ -602,7 +569,7 @@ void mx_fast_dot(const Matrix *src, const Matrix *dst1, const Matrix *dst2) {
     }
 }
 
-Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, float scalar, uint8_t flags){
+Matrix* mx_dot_new(const Matrix* matrix1, const Matrix* matrix2, float scalar, uint8_t flags){
 
     Matrix* m1_copy;
     Matrix* m2_copy;
@@ -687,6 +654,16 @@ float mx_self_dot_product(Matrix* vector) {
     }
 
     return result;
+}
+
+float mx_average(const Matrix* src){
+    float average = 0;
+    for(size_t i = 0; i < src->rows; ++i){
+        for(size_t j = 0; j < src->cols; ++j){
+            average += AT(src, i,j);
+        }
+    }
+    return average/(src->rows+src->cols);
 }
 
 Matrix* mx_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col) {

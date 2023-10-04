@@ -30,10 +30,10 @@ all: mx
 
 debug: mx_debug
 
-mx:
+mx: | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c mx.c -o $(OBJ_DIR)/mx.o
 
-mx_debug:
+mx_debug: | $(OBJ_DIR)
 	$(CC) $(CDEBUGFLAGS) -c mx.c -o $(OBJ_DIR)/mx.o
 
 # Target to compile any file passed as FILE variable
@@ -56,3 +56,7 @@ clean:
 # Static analysis target
 analyze:
 	scan-build $(ANALYSIS_CHECKERS) -o $(ANALYSIS_OUTPUT_DIR) make all
+
+# Rule to create the build directory
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)

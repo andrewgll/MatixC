@@ -10,10 +10,10 @@ void tearDown(void) {
     // This is run after EACH test. Used for cleanup.
 }
 
-void test_mx_arrange_memory_layout(void) {
+void test_mx_arrange_alloc_memory_layout(void) {
     size_t rows = 3;
     size_t cols = 3;
-    Matrix *m = mx_arrange(rows, cols, 0);
+    Matrix *m = mx_arrange_alloc(rows, cols, 0);
 
     TEST_ASSERT_NOT_NULL(m);
     TEST_ASSERT_NOT_NULL(m->container);
@@ -22,11 +22,11 @@ void test_mx_arrange_memory_layout(void) {
     mx_free(m);
 }
 
-void test_mx_arrange_correctness(void) {
+void test_mx_arrange_alloc_correctness(void) {
     size_t rows = 3;
     size_t cols = 3;
     double start_val = 5.0;
-    Matrix *m = mx_arrange(rows, cols, start_val);
+    Matrix *m = mx_arrange_alloc(rows, cols, start_val);
 
     for (size_t i = 0; i < rows; i++) {
         for (size_t j = 0; j < cols; j++) {
@@ -370,8 +370,8 @@ void test_large_matrix(void) {
     mx_free(mat);
 }
 // Test initialization of a 3x3 matrix starting from 0
-void test_mx_arrange_3x3_start_from_0(void) {
-    Matrix *mat = mx_arrange(3, 3, 0);
+void test_mx_arrange_alloc_3x3_start_from_0(void) {
+    Matrix *mat = mx_arrange_alloc(3, 3, 0);
     TEST_ASSERT_NOT_NULL(mat);
     for (size_t i = 0; i < mat->rows; i++) {
         for (size_t j = 0; j < mat->cols; j++) {
@@ -382,9 +382,9 @@ void test_mx_arrange_3x3_start_from_0(void) {
 }
 
 // Test initialization of a 2x5 matrix starting from 10
-void test_mx_arrange_2x5_start_from_10(void) {
+void test_mx_arrange_alloc_2x5_start_from_10(void) {
     float start_value = 10;
-    Matrix *mat = mx_arrange(2, 5, start_value);
+    Matrix *mat = mx_arrange_alloc(2, 5, start_value);
     TEST_ASSERT_NOT_NULL(mat);
     for (size_t i = 0; i < mat->rows; i++) {
         for (size_t j = 0; j < mat->cols; j++) {
@@ -396,36 +396,36 @@ void test_mx_arrange_2x5_start_from_10(void) {
 }
 
 // Test that memory is allocated for a 1x1 matrix
-void test_mx_arrange_1x1(void) {
-    Matrix *mat = mx_arrange(1, 1, 5);
+void test_mx_arrange_alloc_1x1(void) {
+    Matrix *mat = mx_arrange_alloc(1, 1, 5);
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_EQUAL_FLOAT(5, AT(mat, 0, 0));
     mx_free(mat);
 }
 
 // Negative test: Expect the function to handle 0 rows or 0 columns (even though it might not be a common use case)
-void test_mx_arrange_invalid_dimensions(void) {
-    Matrix *mx_zero_rows = mx_arrange(0, 5, 0);
+void test_mx_arrange_alloc_invalid_dimensions(void) {
+    Matrix *mx_zero_rows = mx_arrange_alloc(0, 5, 0);
     TEST_ASSERT_NULL(mx_zero_rows);
 
-    Matrix *mx_zero_cols = mx_arrange(5, 0, 0);
+    Matrix *mx_zero_cols = mx_arrange_alloc(5, 0, 0);
     TEST_ASSERT_NULL(mx_zero_cols);
 }
 
 // Test for a large matrix. This is to check if there are any memory constraints, etc.
-void test_mx_arrange_large_matrix(void) {
+void test_mx_arrange_alloc_large_matrix(void) {
     size_t large_size = 1000;
-    Matrix *mat = mx_arrange(large_size, large_size, 0);
+    Matrix *mat = mx_arrange_alloc(large_size, large_size, 0);
     TEST_ASSERT_NOT_NULL(mat);
     // Optionally, you can also iterate and verify values, but it might be time-consuming for very large matrices.
     mx_free(mat);
 }
 
 
-void test_mx_rand_basic_properties(void) {
+void test_mx_rand_alloc_basic_properties(void) {
     size_t rows = 5;
     size_t cols = 5;
-    Matrix* matrix = mx_rand(rows, cols);
+    Matrix* matrix = mx_rand_alloc(rows, cols);
     
     TEST_ASSERT_NOT_NULL(matrix);
     TEST_ASSERT_EQUAL_UINT(rows, matrix->rows);
@@ -434,10 +434,10 @@ void test_mx_rand_basic_properties(void) {
     mx_free(matrix);
 }
 
-void test_mx_rand_value_range(void) {
+void test_mx_rand_alloc_value_range(void) {
     size_t rows = 5;
     size_t cols = 5;
-    Matrix* matrix = mx_rand(rows, cols);
+    Matrix* matrix = mx_rand_alloc(rows, cols);
 
     for (size_t i = 0; i < rows; i++) {
         for (size_t j = 0; j < cols; j++) {
@@ -448,11 +448,11 @@ void test_mx_rand_value_range(void) {
     mx_free(matrix);
 }
 
-void test_mx_rand_distinct_runs(void) {
+void test_mx_rand_alloc_distinct_runs(void) {
     size_t rows = 5;
     size_t cols = 5;
-    Matrix* matrix1 = mx_rand(rows, cols);
-    Matrix* matrix2 = mx_rand(rows, cols);
+    Matrix* matrix1 = mx_rand_alloc(rows, cols);
+    Matrix* matrix2 = mx_rand_alloc(rows, cols);
 
     size_t matrices_are_equal = 1;
     for (size_t i = 0; i < rows && matrices_are_equal; i++) {
@@ -476,7 +476,7 @@ void test_mx_scale_basic_scaling(void) {
     size_t cols = 3;
     float scalar = 2.0;
 
-    Matrix* matrix = mx_arrange(rows, cols, 1);  // Assuming you have a mx_arrange function.
+    Matrix* matrix = mx_arrange_alloc(rows, cols, 1);  // Assuming you have a mx_arrange_alloc function.
     Matrix* scaled_matrix = mx_scale(matrix, scalar);
 
     // Checking if all values are correctly scaled.
@@ -499,7 +499,7 @@ void test_mx_scale_ref_count_and_memory(void) {
     size_t rows = 3;
     size_t cols = 3;
 
-    Matrix* matrix = mx_arrange(rows, cols, 1);
+    Matrix* matrix = mx_arrange_alloc(rows, cols, 1);
     Matrix* scaled_matrix = mx_scale(matrix, 2.0);
 
     // Assuming ref_count is a publicly accessible member of the container.
@@ -514,10 +514,10 @@ void test_mx_scale_ref_count_and_memory(void) {
 }
 
 void test_add_matching_matrices(void) {
-    Matrix* matrix1 = mx_arrange(2, 2, 1);  // Produces [[1,2], [3,4]]
-    Matrix* matrix2 = mx_arrange(2, 2, 2);  // Produces [[2,3], [4,5]]
+    Matrix* matrix1 = mx_arrange_alloc(2, 2, 1);  // Produces [[1,2], [3,4]]
+    Matrix* matrix2 = mx_arrange_alloc(2, 2, 2);  // Produces [[2,3], [4,5]]
 
-    Matrix* result = ADD(matrix1, matrix2);
+    Matrix* result = ADD_NEW(matrix1, matrix2);
 
     TEST_ASSERT_EQUAL_FLOAT(3, AT(result, 0, 0));
     TEST_ASSERT_EQUAL_FLOAT(5, AT(result, 0, 1));
@@ -525,6 +525,7 @@ void test_add_matching_matrices(void) {
     TEST_ASSERT_EQUAL_FLOAT(9, AT(result, 1, 1));
 
     mx_free(matrix1);
+    mx_free(result);
     mx_free(matrix2);
 }
 
@@ -532,7 +533,7 @@ void test_add_with_different_rows(void) {
     Matrix* matrix1 = MATRIX(3, 2);
     Matrix* matrix2 = MATRIX(2, 2);
 
-    Matrix* result = ADD(matrix1, matrix2);
+    Matrix* result = ADD_NEW(matrix1, matrix2);
 
     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
@@ -545,7 +546,7 @@ void test_add_with_different_columns(void) {
     Matrix* matrix1 = MATRIX(2, 3);
     Matrix* matrix2 = MATRIX(2, 2);
 
-    Matrix* result = ADD(matrix1, matrix2);
+    Matrix* result = ADD_NEW(matrix1, matrix2);
 
     TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
 
@@ -566,115 +567,34 @@ void test_add_zeros(void) {
         for(size_t j = 0; j < matrix2->cols; j++)
             AT(matrix2, i, j) = 0;
 
-    Matrix* result = ADD(matrix1, matrix2);
+    Matrix* result = ADD_NEW(matrix1, matrix2);
 
     for(size_t i = 0; i < result->rows; i++)
         for(size_t j = 0; j < result->cols; j++)
             TEST_ASSERT_EQUAL_FLOAT(0, AT(result, i, j));
 
+    mx_free(result);
     mx_free(matrix1);
     mx_free(matrix2);
 }
 
 void test_add_matrix_to_itself(void) {
-    Matrix* matrix1 = mx_arrange(2, 2, 1);  // Produces [[1,2], [3,4]]
+    Matrix* matrix1 = mx_arrange_alloc(2, 2, 1);  // Produces [[1,2], [3,4]]
 
-    Matrix* result = ADD(matrix1, matrix1);
+    Matrix* result = ADD_NEW(matrix1, matrix1);
 
     TEST_ASSERT_EQUAL_FLOAT(2, AT(result, 0, 0));
     TEST_ASSERT_EQUAL_FLOAT(4, AT(result, 0, 1));
     TEST_ASSERT_EQUAL_FLOAT(6, AT(result, 1, 0));
     TEST_ASSERT_EQUAL_FLOAT(8, AT(result, 1, 1));
 
-    mx_free(matrix1);
-}
-
-void test_add_null_matrices(void) {
-    Matrix* matrix1 = NULL;
-    Matrix* matrix2 = MATRIX(2, 2);
-
-    Matrix* result = ADD(matrix1, matrix2);
-    TEST_ASSERT_NULL(result);
-
-    result = ADD(matrix2, matrix1);
-    TEST_ASSERT_NULL(result);
-
-    mx_free(matrix2);
-    mx_free(result);  // Safe to call, as it checks for NULL internally
-}
-
-void test_subtract_matching_matrices(void) {
-    Matrix* matrix1 = mx_arrange(2, 2, 1);  // Produces [[1,2], [3,4]]
-    Matrix* matrix2 = mx_arrange(2, 2, 2);  // Produces [[2,3], [4,5]]
-
-    Matrix* result = mx_subtract(matrix1, matrix2);
-
-    TEST_ASSERT_EQUAL_FLOAT(-1, AT(result, 0, 0));
-    TEST_ASSERT_EQUAL_FLOAT(-1, AT(result, 0, 1));
-    TEST_ASSERT_EQUAL_FLOAT(-1, AT(result, 1, 0));
-    TEST_ASSERT_EQUAL_FLOAT(-1, AT(result, 1, 1));
-
-    mx_free(matrix1);
-    mx_free(matrix2);
     mx_free(result);
-}
-
-void test_subtract_with_different_rows(void) {
-    Matrix* matrix1 = MATRIX(3, 2);
-    Matrix* matrix2 = MATRIX(2, 2);
-
-    Matrix* result = mx_subtract(matrix1, matrix2);
-
-    TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
-
     mx_free(matrix1);
-    mx_free(matrix2);
-    mx_free(result);  // Safe to call, as it checks for NULL internally
-}
-
-void test_subtract_with_different_columns(void) {
-    Matrix* matrix1 = MATRIX(2, 3);
-    Matrix* matrix2 = MATRIX(2, 2);
-
-    Matrix* result = mx_subtract(matrix1, matrix2);
-
-    TEST_ASSERT_NULL(result);  // Should be NULL due to dimension mismatch
-
-    mx_free(matrix1);
-    mx_free(matrix2);
-    mx_free(result);  // Safe to call, as it checks for NULL internally
-}
-
-void test_subtract_matrix_from_itself(void) {
-    Matrix* matrix1 = mx_arrange(2, 2, 1);  // Produces [[1,2], [3,4]]
-
-    Matrix* result = mx_subtract(matrix1, matrix1);
-
-    for(size_t i = 0; i < result->rows; i++)
-        for(size_t j = 0; j < result->cols; j++)
-            TEST_ASSERT_EQUAL_FLOAT(0, AT(result, i, j));
-
-    mx_free(matrix1);
-    mx_free(result);
-}
-
-void test_subtract_null_matrices(void) {
-    Matrix* matrix1 = NULL;
-    Matrix* matrix2 = MATRIX(2, 2);
-
-    Matrix* result = mx_subtract(matrix1, matrix2);
-    TEST_ASSERT_NULL(result);
-
-    result = mx_subtract(matrix2, matrix1);
-    TEST_ASSERT_NULL(result);
-
-    mx_free(matrix2);
-    mx_free(result);  // Safe to call, as it checks for NULL internally
 }
 
 void test_dot_valid_matrices(void) {
-    Matrix* matrix1 = mx_arrange(2, 3, 1);  // Produces [[1,2,3], [4,5,6]]
-    Matrix* matrix2 = mx_arrange(3, 2, 1);  // Produces [[1,2], [3,4], [5,6]]
+    Matrix* matrix1 = mx_arrange_alloc(2, 3, 1);  // Produces [[1,2,3], [4,5,6]]
+    Matrix* matrix2 = mx_arrange_alloc(3, 2, 1);  // Produces [[1,2], [3,4], [5,6]]
 
     Matrix* result = SAFE_DOT(matrix1, matrix2);
 
@@ -716,7 +636,7 @@ void test_dot_null_matrices(void) {
 }
 
 void test_dot_matrix_and_its_transpose(void) {
-    Matrix* matrix1 = mx_arrange(2, 3, 1);   // Produces [[1,2,3], [4,5,6]]
+    Matrix* matrix1 = mx_arrange_alloc(2, 3, 1);   // Produces [[1,2,3], [4,5,6]]
     Matrix* matrix2 = TRANSPOSE_VIEW(matrix1); // Should produce [[1,4], [2,5], [3,6]]
 
     Matrix* result = SAFE_DOT(matrix1, matrix2);
@@ -732,7 +652,7 @@ void test_dot_matrix_and_its_transpose(void) {
 }
 
 void test_slice_valid_submatrix(void) {
-    Matrix* matrix = mx_arrange(4, 4, 1); // Produces a 4x4 matrix with values from 1 to 16
+    Matrix* matrix = mx_arrange_alloc(4, 4, 1); // Produces a 4x4 matrix with values from 1 to 16
 
     Matrix* slice = mx_slice(matrix, 1, 2, 1, 2); // 2x2 slice from row 1-2 and col 1-2
 
@@ -766,7 +686,7 @@ void test_slice_null_matrix(void) {
 }
 
 void test_slice_entire_matrix(void) {
-    Matrix* matrix = mx_arrange(4, 4, 1); // Produces a 4x4 matrix
+    Matrix* matrix = mx_arrange_alloc(4, 4, 1); // Produces a 4x4 matrix
 
     Matrix* slice = mx_slice(matrix, 0, 3, 0, 3); // Slice the entire matrix
     TEST_ASSERT_EQUAL_FLOAT(1, AT(slice, 0, 0));
@@ -777,7 +697,7 @@ void test_slice_entire_matrix(void) {
 }
 
 void test_slice_single_row_col(void) {
-    Matrix* matrix = mx_arrange(4, 4, 1); // Produces a 4x4 matrix
+    Matrix* matrix = mx_arrange_alloc(4, 4, 1); // Produces a 4x4 matrix
 
     Matrix* row_slice = mx_slice(matrix, 2, 2, 0, 3);  // Third row
     Matrix* col_slice = mx_slice(matrix, 0, 3, 2, 2);  // Third column
@@ -864,9 +784,9 @@ void test_COL_SLICE_macro(void) {
     mx_free(col_slice);
 }
 
-void test_mx_identity_square_matrix(void) {
+void test_mx_identity_new_square_matrix(void) {
     size_t rows = 3;
-    Matrix* result = mx_identity(rows);
+    Matrix* result = mx_identity_new(rows);
 
     // Check main diagonal elements
     TEST_ASSERT_EQUAL_FLOAT(1, AT(result, 0, 0));
@@ -884,9 +804,9 @@ void test_mx_identity_square_matrix(void) {
     mx_free(result);
 }
 
-void test_mx_identity_non_square_matrix(void) {
+void test_mx_identity_new_non_square_matrix(void) {
     size_t rows = 3;
-    Matrix* result = mx_identity(rows);
+    Matrix* result = mx_identity_new(rows);
 
     // Check the elements
     TEST_ASSERT_EQUAL_FLOAT(1, AT(result, 0, 0));
@@ -900,8 +820,8 @@ void test_mx_identity_non_square_matrix(void) {
     mx_free(result);
 }
 
-void test_mx_identity_invalid_dimensions(void) {
-    Matrix* result = mx_identity(0);
+void test_mx_identity_new_invalid_dimensions(void) {
+    Matrix* result = mx_identity_new(0);
     TEST_ASSERT_NULL(result);
     
 }
@@ -1096,7 +1016,7 @@ void test_mx_view_ref_count_increase(void) {
 }
 
 void test_mx_init_with_null_array(void) {
-    Matrix *mat = __MATRIX_FROM(NULL, 2, 2);
+    Matrix *mat = MATRIX_FROM(NULL, 2, 2);
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_EQUAL(2, mat->rows);
     TEST_ASSERT_EQUAL(2, mat->cols);
@@ -1106,7 +1026,7 @@ void test_mx_init_with_null_array(void) {
 
 void test_mx_init_with_static_array(void) {
     float sampleArray[2][2] = {{1, 2}, {3, 4}};
-    Matrix *mat = __MATRIX_FROM((float *)sampleArray, 2, 2);
+    Matrix *mat = MATRIX_FROM((float *)sampleArray, 2, 2);
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_EQUAL(2, mat->rows);
     TEST_ASSERT_EQUAL(2, mat->cols);
@@ -1118,13 +1038,13 @@ void test_mx_init_with_static_array(void) {
 }
 
 void test_mx_init_with_zero_dimensions(void) {
-    Matrix *mat = __MATRIX_FROM(NULL, 0, 0);
+    Matrix *mat = MATRIX_FROM(NULL, 0, 0);
     TEST_ASSERT_NULL(mat);
     mx_free(mat);
 }
 
 void test_init_container_with_null_array(void) {
-    Matrix *mat = __MATRIX_FROM(NULL, 1,4);
+    Matrix *mat = MATRIX_FROM(NULL, 1,4);
     TEST_ASSERT_NOT_NULL(mat);
     TEST_ASSERT_EQUAL(1, mat->container->ref_count);
     mx_free(mat);
@@ -1132,7 +1052,7 @@ void test_init_container_with_null_array(void) {
 
 void test_init_matrix_with_static_array(void) {
     float sampleArray[4] = {1, 2, 3, 4};
-    Matrix *m = __MATRIX_FROM(sampleArray, 4,1);
+    Matrix *m = MATRIX_FROM(sampleArray, 4,1);
     TEST_ASSERT_NOT_NULL(m);
     TEST_ASSERT_EQUAL(1, m->container->ref_count);
     TEST_ASSERT_EQUAL_FLOAT_ARRAY(sampleArray, m->container->data, 4);
@@ -1140,7 +1060,7 @@ void test_init_matrix_with_static_array(void) {
 }
 
 void test_init_container_with_zero_size(void) {
-    Matrix *container = __MATRIX_FROM(NULL, 0,0);
+    Matrix *container = MATRIX_FROM(NULL, 0,0);
     TEST_ASSERT_NULL(container);
     mx_free(container);
 }
@@ -1153,12 +1073,12 @@ void test_init_matrix_with_dynamic_array(void) {
         sampleArray[2] = 3;
         sampleArray[3] = 4;
 
-        Matrix *m = __MATRIX_FROM(sampleArray, 4, 1);
+        Matrix *m = MATRIX_FROM(sampleArray, 4, 1);
         TEST_ASSERT_NOT_NULL(m);
         TEST_ASSERT_EQUAL(1, m->container->ref_count);
         TEST_ASSERT_EQUAL_FLOAT_ARRAY(sampleArray, m->container->data, 4);
 
-        // Since the __MATRIX_FROM function copies over the data and 
+        // Since the MATRIX_FROM function copies over the data and 
         // always allocates its own memory, you can free the dynamic array here.
         free(sampleArray);
 
@@ -1168,7 +1088,7 @@ void test_init_matrix_with_dynamic_array(void) {
 
 void test_self_dot_product_with_valid_row_vector(void) {
     float data[3] = {1.0, 2.0, 3.0};
-    Matrix *row_vector = __MATRIX_FROM(data, 1, 3);
+    Matrix *row_vector = MATRIX_FROM(data, 1, 3);
     
     float result = mx_self_dot_product(row_vector);
     
@@ -1179,7 +1099,7 @@ void test_self_dot_product_with_valid_row_vector(void) {
 
 void test_self_dot_product_with_valid_column_vector(void) {
     float data[3] = {1.0, 2.0, 3.0};
-    Matrix *col_vector = __MATRIX_FROM(data, 3, 1);
+    Matrix *col_vector = MATRIX_FROM(data, 3, 1);
     
     float result = mx_self_dot_product(col_vector);
     
@@ -1190,7 +1110,7 @@ void test_self_dot_product_with_valid_column_vector(void) {
 
 void test_self_dot_product_with_invalid_2D_matrix(void) {
     float data[4] = {1.0, 2.0, 3.0, 4.0};
-    Matrix *matrix = __MATRIX_FROM(data, 2, 2);
+    Matrix *matrix = MATRIX_FROM(data, 2, 2);
     
     float result = mx_self_dot_product(matrix);
     
@@ -1339,7 +1259,7 @@ void problem121(void){
     Matrix* uw_dot = SAFE_DOT(u,w);
     TEST_ASSERT_EQUAL(AT(uw_dot,0,0), 0);
     Matrix* uw_add = MATRIX_COPY(u);
-    uw_add = ADD(uw_add,w);
+    ADD(uw_add,w);
     TEST_ASSERT_EQUAL(AT(uw_add,0,0), 2);
     TEST_ASSERT_EQUAL(AT(uw_add,0,1), 14);
     Matrix* u_dot_uw_add = SAFE_DOT(u,uw_add);
@@ -1436,15 +1356,15 @@ void problem124(void){
     Matrix* dot = SAFE_DOT(u,minus_u);
     TEST_ASSERT_EQUAL(-100, AT(dot,0,0));
     Matrix* v_plus_w = MATRIX_COPY(v);
-    v_plus_w = ADD(v_plus_w,w);
-    Matrix* v_minus_w = mx_subtract(v,w);
+    ADD(v_plus_w,w);
+    Matrix* v_minus_w = SUBTRACT_NEW(v,w);
     Matrix* v_pm_dot_w = SAFE_DOT(v_plus_w,v_minus_w);
     TEST_ASSERT_EQUAL(-75, AT(v_pm_dot_w,0,0));
 
     Matrix* w_scaled = SCALAR_DOT(w,2);
     Matrix* v_plus_scaled_w = MATRIX_COPY(v);
-    v_plus_scaled_w = ADD(v_plus_scaled_w,w_scaled);
-    Matrix* v_minus_scaled_w = mx_subtract(v,w_scaled);
+    ADD(v_plus_scaled_w,w_scaled);
+    Matrix* v_minus_scaled_w = SUBTRACT_NEW(v,w_scaled);
     Matrix* v_ps_ms_dot_w = SAFE_DOT(v_plus_scaled_w,v_minus_scaled_w);
     TEST_ASSERT_EQUAL(-375, AT(v_ps_ms_dot_w,0,0));
 
@@ -1482,8 +1402,8 @@ void problem125(void){
     TEST_ASSERT_EQUAL_FLOAT((float)(1.0/3), AT(w_unit_vector,0,1));
     TEST_ASSERT_EQUAL_FLOAT((float)(2.0/3), AT(w_unit_vector,0,2));
 
-    Matrix* u_perpendicular = mx_perpendicular(u);
-    Matrix* w_perpendicular = mx_perpendicular(w);
+    Matrix* u_perpendicular = mx_perpendicular_new(u);
+    Matrix* w_perpendicular = mx_perpendicular_new(w);
     // should be 0
     Matrix* u_perpendicular_dot = SAFE_DOT(u,u_perpendicular);
     Matrix* w_perpendicular_dot = SAFE_DOT(w,w_perpendicular);
@@ -1564,13 +1484,13 @@ void rules1219(void){
     // u(w+v) = uw+uv
     Matrix* u = MATRIX_RAND(1,2);
     Matrix* v_plus_w = MATRIX_COPY(v);
-    v_plus_w = ADD(v_plus_w,w);
+    ADD(v_plus_w,w);
     Matrix* u_dot_vpw = SAFE_DOT(u,v_plus_w);
     Matrix* v_dot_v_p_w = SAFE_DOT(v, v_plus_w);
     Matrix* u_dot_v = SAFE_DOT(u,v);
     Matrix* u_dot_w = SAFE_DOT(u,w);
     Matrix* udv_plus_udw = MATRIX_COPY(u_dot_v);
-    udv_plus_udw = ADD(udv_plus_udw, u_dot_w);
+    ADD(udv_plus_udw, u_dot_w);
     TEST_ASSERT_EQUAL(AT(u_dot_vpw,0,0), AT(udv_plus_udw,0,0));
     mx_free(v_plus_w);
     mx_free(u_dot_vpw);
@@ -1602,7 +1522,7 @@ void rules12192(void){
     Matrix* w = MATRIX_RAND(1,2);
 
     Matrix* u = MATRIX_COPY(v);
-    u = ADD(u,w);
+    ADD(u,w);
 
     float length = mx_length(u);
     float length_squared = length*length;
@@ -1636,7 +1556,7 @@ void rules1220(void){
     Matrix* u = MATRIX_RAND(1,2);
     Matrix* w = MATRIX_RAND(1,2);
 
-    Matrix* u_subtract_w= mx_subtract(u,w);
+    Matrix* u_subtract_w= SUBTRACT_NEW(u,w);
 
     float u_s_w_length = mx_length(u_subtract_w);
 
@@ -1827,8 +1747,8 @@ int main(void) {
     // initialization
     RUN_TEST(test_basic_matrix_initialization);
     RUN_TEST(test_matrix_initialization_with_value);
-    RUN_TEST(test_mx_arrange_memory_layout);
-    RUN_TEST(test_mx_arrange_correctness);
+    RUN_TEST(test_mx_arrange_alloc_memory_layout);
+    RUN_TEST(test_mx_arrange_alloc_correctness);
 
     // free
     RUN_TEST(test_basic_free);
@@ -1863,16 +1783,16 @@ int main(void) {
     RUN_TEST(test_large_matrix);
 
     // arrange
-    RUN_TEST(test_mx_arrange_3x3_start_from_0);
-    RUN_TEST(test_mx_arrange_2x5_start_from_10);
-    RUN_TEST(test_mx_arrange_1x1);
-    // RUN_TEST(test_mx_arrange_invalid_dimensions);
-    RUN_TEST(test_mx_arrange_large_matrix);
+    RUN_TEST(test_mx_arrange_alloc_3x3_start_from_0);
+    RUN_TEST(test_mx_arrange_alloc_2x5_start_from_10);
+    RUN_TEST(test_mx_arrange_alloc_1x1);
+    // RUN_TEST(test_mx_arrange_alloc_invalid_dimensions);
+    RUN_TEST(test_mx_arrange_alloc_large_matrix);
 
     // random
-    RUN_TEST(test_mx_rand_basic_properties);
-    RUN_TEST(test_mx_rand_value_range);
-    RUN_TEST(test_mx_rand_distinct_runs);
+    RUN_TEST(test_mx_rand_alloc_basic_properties);
+    RUN_TEST(test_mx_rand_alloc_value_range);
+    RUN_TEST(test_mx_rand_alloc_distinct_runs);
 
     // scale
     RUN_TEST(test_mx_scale_basic_scaling);
@@ -1885,14 +1805,6 @@ int main(void) {
     RUN_TEST(test_add_with_different_columns);
     RUN_TEST(test_add_zeros);
     RUN_TEST(test_add_matrix_to_itself);
-    RUN_TEST(test_add_null_matrices);
-
-    // subtraction
-    RUN_TEST(test_subtract_matching_matrices);
-    RUN_TEST(test_subtract_with_different_rows);
-    RUN_TEST(test_subtract_with_different_columns);
-    RUN_TEST(test_subtract_matrix_from_itself);
-    RUN_TEST(test_subtract_null_matrices);
 
     // dot product
     RUN_TEST(test_dot_valid_matrices);
@@ -1917,9 +1829,9 @@ int main(void) {
     RUN_TEST(test_COL_SLICE_macro);
 
     // identity
-    RUN_TEST(test_mx_identity_square_matrix);
-    RUN_TEST(test_mx_identity_non_square_matrix);
-    RUN_TEST(test_mx_identity_invalid_dimensions);
+    RUN_TEST(test_mx_identity_new_square_matrix);
+    RUN_TEST(test_mx_identity_new_non_square_matrix);
+    RUN_TEST(test_mx_identity_new_invalid_dimensions);
     
     // equal
     RUN_TEST(test_mx_equal_different_dimensions);

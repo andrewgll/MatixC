@@ -44,10 +44,11 @@
       &(matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride])
 /**
  * @brief Allocates a matrix with rows and cols size. 
+ * also allocates a memory for matrix container with size rows x cols
 */
 #define MATRIX(rows, cols) __mx_init(NULL,rows, cols, 0)
-#define __MATRIX_FROM(array,rows,cols) __mx_init(array, rows,cols, 0)
-#define MATRIX_FROM_ARRAY(array) __MATRIX_FROM(array, ARRAY_ROWS(array), ARRAY_COLS(array))
+#define MATRIX_FROM(array,rows,cols) __mx_init(array, rows,cols, 0)
+#define MATRIX_FROM_ARRAY(array) MATRIX_FROM(array, ARRAY_ROWS(array), ARRAY_COLS(array))
 #define MATRIX_VIEW(matrix) safe_mx_view(matrix)
 #define MATRIX_ONES(rows,cols)  \
     ((rows) <= 0 || (cols) <= 0) ? \
@@ -73,8 +74,8 @@
  * @param rows The number of rows for the identity matrix.
  * @return A pointer to the identity matrix or NULL if dimensions are invalid or memory allocation failed.
  */
-#define MATRIX_IDENTITY(rows) mx_identity(rows)
-#define MATRIX_DIAGONAL(rows,value) mx_diagonal(rows,value)
+#define MATRIX_IDENTITY(rows) mx_identity_new(rows)
+#define MATRIX_DIAGONAL(rows,value) mx_diagonal_new(rows,value)
 
 /**
  * @brief Generates a matrix with random values.
@@ -86,7 +87,7 @@
  * @param cols The number of columns for the new matrix.
  * @return A pointer to the generated matrix with random values.
  */
-#define MATRIX_RAND(rows,cols) mx_rand(rows, cols)
+#define MATRIX_RAND(rows,cols) mx_rand_alloc(rows, cols)
 
 /**
  * @brief Generates a matrix initialized with a specific value.
@@ -113,17 +114,17 @@
 
 #define TRANSPOSE(matrix) mx_transpose(matrix, 1U<<0)
 #define TRANSPOSE_VIEW(matrix) mx_transpose(matrix, 1U<<1)
-#define TRANSPOSE_COPY(matrix) mx_transpose(matrix, 1U<<2)
+#define TRANSPOSE_NEW(matrix) mx_transpose(matrix, 1U<<2)
 
 #define ROW_SLICE(matrix,i,j) mx_slice(matrix,i,j,0,(matrix)->cols-1)
 #define COL_SLICE(matrix,i,j) mx_slice(matrix, 0, (matrix)->rows-1, i, j)
 
 #define UNIT_VECTOR_FROM(matrix) mx_unit_vector_from(matrix)
-#define UNIT_VECTOR(size) mx_identity(size)
+#define UNIT_VECTOR(size) mx_identity_new(size)
 
 #define SCALAR(matrix) AT(matrix,0,0)
-
-#define SAFE_DOT(matrix1, matrix2) mx_dot(matrix1, matrix2, 0, 1U<<0)
+#define AVERAGE(matrix) mx_average(matrix)
+#define SAFE_DOT(matrix1, matrix2) mx_dot_new(matrix1, matrix2, 0, 1U<<0)
 
 /**
  * @brief Computes the dot product of two matrices.
@@ -143,9 +144,14 @@
  * 
  */
 #define DOT(src, dst1, dst2) mx_fast_dot(src, dst1, dst2)
-#define SCALAR_DOT(matrix, scalar_value) mx_dot(matrix, NULL, scalar_value, 1U<<1)
-#define ADD(matrix1, matrix2) mx_add(matrix1,matrix2, 0)
-#define ADD_TO_COPY(matrix1, matrix2) mx_add(matrix1,matrix2, 1U<<0)
+#define SCALAR_DOT(matrix, scalar_value) mx_dot_new(matrix, NULL, scalar_value, 1U<<1)
+#define ADD(matrix1, matrix2) APPLY_TO_BOTH(matrix1,matrix2, __add_elements)
+#define ADD_NEW(matrix1, matrix2) APPLY_TO_BOTH_NEW(matrix1,matrix2, __add_elements)
+#define SUBTRACT(matrix1,matrix2) APPLY_TO_BOTH_INPLACE(matrix1, matrix2, __subtract_elements)
+#define SUBTRACT_NEW(matrix1,matrix2) APPLY_TO_BOTH_NEW(matrix1, matrix2, __subtract_elements)
+
+#define APPLY_TO_BOTH(matrix1, matrix2, function) mx_apply_function_to_both(matrix1, matrix2, function)
+#define APPLY_TO_BOTH_NEW(matrix1, matrix2, function) mx_apply_function_to_both_new(matrix1, matrix2, function)
 
 #define SET_FLAG(f, index)   ((f) |= (1U << (index)))
 #define CLEAR_FLAG(f, index) ((f) &= ~(1U << (index)))
@@ -157,6 +163,7 @@
 
 typedef struct{
     uint16_t ref_count;
+    size_t size;
     precision_type *data;
 } __matrix_container;
 
@@ -202,9 +209,9 @@ typedef struct {
 
 } NN;
 
-
 float sigmoidf(float value);
-
+float __add_elements(float a, float b);
+float __subtract_elements(float a, float b); 
 void swap(float *a, float *b);
 /**
  * @brief Frees the memory of a matrix, taking shared data containers into account.
@@ -327,9 +334,9 @@ float mx_length(const Matrix* matrix);
  * @param rows The number of rows for the identity matrix(rows=cols).
  * @return A pointer to the identity matrix or NULL if dimensions are invalid or memory allocation failed.
  */
-Matrix* mx_identity(size_t rows);
+Matrix* mx_identity_new(size_t rows);
 
-Matrix* mx_diagonal(size_t rows, float value);
+Matrix* mx_diagonal_new(size_t rows, float value);
 
 /**
  * @brief Compute the cosine of the angle between two vectors.
@@ -387,7 +394,7 @@ Matrix* mx_transpose(Matrix* matrix, uint8_t flags);
  * @param start_arrange The starting value for arranging the matrix elements.
  * @return Pointer to the newly created matrix, or NULL on failure.
  */
-Matrix* mx_arrange(size_t rows, size_t cols, float start_arrange);
+Matrix* mx_arrange_alloc(size_t rows, size_t cols, float start_arrange);
 
 /**
  * Generates a matrix with random values between 0 and 1.
@@ -396,7 +403,7 @@ Matrix* mx_arrange(size_t rows, size_t cols, float start_arrange);
  * @param cols Number of columns in the matrix.
  * @return A pointer to the matrix with random values or NULL if allocation fails.
  */
-Matrix* mx_rand(size_t rows, size_t cols);
+Matrix* mx_rand_alloc(size_t rows, size_t cols);
 
 /**
  * --DEPRECATED--
@@ -417,6 +424,9 @@ Matrix* mx_scale(Matrix* matrix, float scalar);
  */
 Matrix* mx_add(Matrix* matrix1, Matrix* matrix2, uint8_t flags);
 
+uint8_t mx_apply_function_to_both(Matrix* matrix1,Matrix* matrix2, float (*func)(float, float));
+
+Matrix* mx_apply_function_to_both_new(Matrix* matrix1,Matrix* matrix2, float (*func)(float, float));
 /**
  * Subtracts the elements of the second matrix from the first one, element-wise.
  *
@@ -441,7 +451,7 @@ Matrix* mx_subtract(const Matrix* matrix1, const Matrix* matrix2);
  *         are not compatible and cannot be made compatible by transposing, 
  *         the function returns NULL.
  */
-Matrix* mx_dot(const Matrix* matrix1, const Matrix* matrix2, float scalar, uint8_t flags);
+Matrix* mx_dot_new(const Matrix* matrix1, const Matrix* matrix2, float scalar, uint8_t flags);
 
 /**
  * @brief Computes the dot product of two matrices.
@@ -467,7 +477,7 @@ void mx_fast_dot(const Matrix *src, const Matrix *dst1, const Matrix *dst2);
  *
  * @param matrix: A pointer to a 2D or 3D Matrix in vector form (either row or column).
  */
-Matrix* mx_perpendicular(const Matrix* matrix);
+Matrix* mx_perpendicular_new(const Matrix* matrix);
 
 /**
  * @brief Computes the dot product of a vector with itself.
@@ -491,6 +501,7 @@ Matrix* mx_perpendicular(const Matrix* matrix);
  */
 float mx_self_dot_product(Matrix* vector);
 
+Matrix* mx_cross_product_alloc(const Matrix* A, const Matrix* B);
 /**
  * @brief Extracts a submatrix (or slice) from a given source matrix based on specified start and end indices.
  * 

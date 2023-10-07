@@ -1,5 +1,5 @@
 #include "unity.h"
-#include "mx.h" 
+#include "../mx.h" 
 #define MX_IMPLEMENTATION
 
 void setUp(void) {

@@ -11,7 +11,7 @@ LDFLAGS=-lm
 
 OBJ_DIR=build
 OBJS=$(OBJ_DIR)/mx.o
-UNITY_TEST_EXECUTABLE=$(OBJ_DIR)/unity_test
+UNITY_TEST_EXECUTABLE=$(OBJ_DIR)/$(FILE)
 
 ANALYSIS_CHECKERS=-enable-checker core -enable-checker alpha -enable-checker unix -enable-checker cplusplus
 
@@ -41,7 +41,7 @@ example: mx_debug
 	$(CC) $(CDEBUGFLAGS) ./examples/$(FILE).c $(OBJS) -o $(OBJ_DIR)/example $(LDFLAGS)
 
 tests: clone_unity mx_debug
-	$(CC) $(CDEBUGFLAGS) tests.c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDFLAGS)
+	$(CC) $(CDEBUGFLAGS) ./tests/$(FILE).c $(OBJS) $(UNITY_SRC_DIR)/unity.c -o $(UNITY_TEST_EXECUTABLE) $(LDFLAGS)
 	valgrind --leak-check=full --track-origins=yes $(UNITY_TEST_EXECUTABLE)
 
 clone_unity:

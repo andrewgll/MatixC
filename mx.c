@@ -488,12 +488,6 @@ Matrix* mx_arrange_alloc(size_t rows, size_t cols, float start_arrange) {
     return matrix;
 }
 
-Matrix* mx_inverse(const Matrix* matrix){
-    // pass
-    Matrix* m = MATRIX_VIEW(matrix);
-    return m;
-}
-
 Matrix* mx_scale(Matrix* matrix, float scalar) {
     Matrix* result = MATRIX_COPY(matrix);
     if (!result) {
@@ -542,6 +536,39 @@ float mx_length(const Matrix* matrix) {
         }
     }
     return sqrt(value);
+}
+uint8_t mx_inverse(Matrix *input, Matrix *output) {
+    if (input->rows != input->cols) return -1;
+
+    int n = input->rows;
+    Matrix* identity = MATRIX_IDENTITY(n);
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            AT(output, i, j) = AT(identity, i, j);
+        }
+    }
+    mx_free(identity); 
+
+    for (int i = 0; i < n; ++i) {
+        float diagValue = AT(input,i,i);
+        if (fabs(diagValue) < 1e-6) return -1; // Singular matrix (or close to singular)
+        for (int j = 0; j < n; j++) {
+            AT(input,i,j) /= diagValue;
+            AT(output,i,j) /= diagValue;
+        }
+
+        for (int j = 0; j < n; ++j) {
+            if (j != i) {
+                float ratio = AT(input,j,i);
+                for (int k = 0; k < n; k++) {
+                    AT(input,j,k) -= ratio * AT(input,i,k);
+                    AT(output,j,k) -= ratio * AT(output,i,k);
+                }
+            }
+        }
+    }
+    return 1;
 }
 
 // fast dot algorithm
@@ -756,9 +783,9 @@ Matrix* open_dataset(const char* name){
     return result;
 }
 
-void* mx_print(const Matrix* matrix, const char* name, size_t padding) {
+uint8_t mx_print(const Matrix* matrix, const char* name, size_t padding) {
     if(CHECK_MATRIX_VALIDITY(matrix)==-1){
-        return NULL;
+        return -1;
     }
     printf("%*s%s=([\n",(int)padding, "", name);
     for (size_t i = 0; i < matrix->rows; ++i) {

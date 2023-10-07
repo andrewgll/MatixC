@@ -5,6 +5,7 @@
         "initializer_list": "c",
         "errno.h": "c",
         "mx.h": "c",
-        "functional": "c"
+        "functional": "c",
+        "unity.h": "c"
     }
 }

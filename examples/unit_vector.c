@@ -1,5 +1,7 @@
 #include "../mx.h"
 
+#define MX_IMPLEMENTATION
+
 int main(void){
     Matrix* m = MATRIX_RAND(1,3);
     PRINTM(m);

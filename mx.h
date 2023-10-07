@@ -39,9 +39,7 @@
     ((matrix) && (matrix)->container && (matrix)->container->data && VALID_DIMENSIONS((matrix)->rows, (matrix)->cols))
 #define CHECK_MATRIX_VALIDITY(matrix) matrix_is_valid(matrix)
 #define AT(matrix, i, j) \
-    *(CHECK_FLAG((matrix)->flags, 0) ? \
-      &(float){(matrix)->default_value} : \
-      &(matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride])
+    (matrix)->container->data[(i) * (matrix)->row_stride + (j) * (matrix)->col_stride]
 /**
  * @brief Allocates a matrix with rows and cols size. 
  * also allocates a memory for matrix container with size rows x cols
@@ -518,12 +516,10 @@ Matrix* mx_cross_product_alloc(const Matrix* A, const Matrix* B);
  */
 Matrix* mx_slice(const Matrix* src, size_t start_row, size_t end_row, size_t start_col, size_t end_col);
 
-/*Not implemented*/ 
-Matrix* mx_inverse(const Matrix* matrix);
-
+uint8_t mx_inverse(Matrix *input, Matrix *output);
 Matrix* open_dataset(const char* name);
 void mx_nn_free(NN* nn);
-void* mx_print(const Matrix* matrix, const char* name, size_t padding);
+uint8_t mx_print(const Matrix* matrix, const char* name, size_t padding);
 void mx_nn_print(const NN* nn, const char* name);
 
 #endif // MX_H_

@@ -45,7 +45,6 @@ void test_problem_set_page_65_B_C(){
     Matrix* m2 = MATRIX_FROM(arr2, 3,3);
     MX_ASSERT(m1->cols == m2->rows);
     Matrix* result = MATRIX(m1->rows, m2->cols);
-    // not using dot operator intionally
     for(size_t i = 0; i < m1->rows; ++i){
         for(size_t j = 0; j < m2->cols; ++j){
             float sum = 0;
